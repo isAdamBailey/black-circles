@@ -24,7 +24,7 @@ class SettingsController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $request->validate([
-            'discogs_username' => 'required|string|max:255|alpha_dash',
+            'discogs_username' => 'required|string|max:255|regex:/^[a-zA-Z0-9._-]+$/',
         ]);
 
         Setting::set('discogs_username', $request->discogs_username);
