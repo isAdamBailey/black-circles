@@ -23,9 +23,3 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 /database/database.sqlite
-/storage/framework/cache/data
-/storage/framework/sessions
-/storage/framework/testing
-/storage/framework/views
-/storage/logs
-/compose.yaml

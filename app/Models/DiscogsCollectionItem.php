@@ -9,7 +9,7 @@ class DiscogsCollectionItem extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'instance_id', 'discogs_release_id', 'folder_name', 'rating', 'notes', 'date_added',
+        'instance_id', 'discogs_release_id', 'folder_id', 'rating', 'notes', 'date_added',
     ];
 
     protected $casts = [

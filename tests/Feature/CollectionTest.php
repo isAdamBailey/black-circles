@@ -48,8 +48,8 @@ class CollectionTest extends TestCase
 
     public function test_collection_can_be_filtered_by_genre(): void
     {
-        DiscogsRelease::factory()->create(['genres' => ['Rock']]);
-        DiscogsRelease::factory()->create(['genres' => ['Electronic']]);
+        DiscogsRelease::factory()->withGenres(['Rock'])->create();
+        DiscogsRelease::factory()->withGenres(['Electronic'])->create();
 
         $response = $this->get(route('collection.index', ['genres' => 'Rock']));
 

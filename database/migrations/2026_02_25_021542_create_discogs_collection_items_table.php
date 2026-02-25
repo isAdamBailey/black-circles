@@ -12,9 +12,9 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('instance_id')->unique();
             $table->unsignedBigInteger('discogs_release_id');
-            $table->string('folder_name')->nullable();
+            $table->unsignedInteger('folder_id')->nullable();
             $table->integer('rating')->nullable();
-            $table->text('notes')->nullable();
+            $table->text('notes')->nullable(); // JSON array: [{"field_id": int, "value": "string"}]
             $table->timestamp('date_added')->nullable();
             $table->timestamps();
 

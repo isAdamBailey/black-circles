@@ -3,6 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\DiscogsRelease;
+use App\Models\Genre;
+use App\Models\Style;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class DiscogsReleaseFactory extends Factory
@@ -21,8 +23,6 @@ class DiscogsReleaseFactory extends Factory
             'cover_image' => null,
             'thumb' => null,
             'formats' => [['name' => 'Vinyl', 'qty' => '1', 'descriptions' => ['LP', 'Album']]],
-            'genres' => $this->faker->randomElements(['Rock', 'Electronic', 'Jazz', 'Classical', 'Hip Hop'], 2),
-            'styles' => $this->faker->randomElements(['Alternative Rock', 'Indie', 'Post-Punk', 'Ambient'], 2),
             'tracklist' => null,
             'videos' => null,
             'lowest_price' => $this->faker->randomFloat(2, 1, 20),
@@ -31,5 +31,29 @@ class DiscogsReleaseFactory extends Factory
             'discogs_uri' => 'https://www.discogs.com/release/' . $this->faker->numberBetween(1000000, 9999999),
             'release_data_cached_at' => null,
         ];
+    }
+
+    /**
+     * Attach specific genres (by name) after the release is created.
+     */
+    public function withGenres(array $genreNames): static
+    {
+        return $this->afterCreating(function (DiscogsRelease $release) use ($genreNames) {
+            $ids = collect($genreNames)
+                ->map(fn($name) => Genre::firstOrCreate(['name' => $name])->id);
+            $release->genres()->sync($ids);
+        });
+    }
+
+    /**
+     * Attach specific styles (by name) after the release is created.
+     */
+    public function withStyles(array $styleNames): static
+    {
+        return $this->afterCreating(function (DiscogsRelease $release) use ($styleNames) {
+            $ids = collect($styleNames)
+                ->map(fn($name) => Style::firstOrCreate(['name' => $name])->id);
+            $release->styles()->sync($ids);
+        });
     }
 }

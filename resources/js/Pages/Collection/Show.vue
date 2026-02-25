@@ -15,16 +15,9 @@ function getYouTubeId(url) {
 const youtubeVideos = computed(() => {
     if (!props.release.videos) return [];
     return props.release.videos
-        .filter(v => v.uri && getYouTubeId(v.uri))
+        .filter(v => v.uri && v.embed !== false && getYouTubeId(v.uri))
         .map(v => ({ ...v, youtubeId: getYouTubeId(v.uri) }));
 });
-
-function formatDuration(seconds) {
-    if (!seconds) return '';
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${String(s).padStart(2, '0')}`;
-}
 
 const genres = computed(() => {
     if (!props.release.genres) return [];

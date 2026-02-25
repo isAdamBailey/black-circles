@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\DiscogsRelease;
+use App\Models\Genre;
 use App\Models\Setting;
+use App\Models\Style;
 use App\Services\DiscogsService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,15 +26,11 @@ class CollectionController extends Controller
         }
 
         if ($genres = $request->get('genres')) {
-            foreach ((array) $genres as $genre) {
-                $query->where('genres', 'like', "%{$genre}%");
-            }
+            $query->whereHas('genres', fn($q) => $q->whereIn('name', (array) $genres));
         }
 
         if ($styles = $request->get('styles')) {
-            foreach ((array) $styles as $style) {
-                $query->where('styles', 'like', "%{$style}%");
-            }
+            $query->whereHas('styles', fn($q) => $q->whereIn('name', (array) $styles));
         }
 
         $sort = $request->get('sort', 'date_added');
@@ -54,15 +52,8 @@ class CollectionController extends Controller
 
         $releases = $query->paginate(48)->withQueryString();
 
-        $allGenres = DiscogsRelease::whereNotNull('genres')
-            ->pluck('genres')
-            ->flatMap(fn($g) => is_array($g) ? $g : json_decode($g, true) ?? [])
-            ->unique()->sort()->values();
-
-        $allStyles = DiscogsRelease::whereNotNull('styles')
-            ->pluck('styles')
-            ->flatMap(fn($s) => is_array($s) ? $s : json_decode($s, true) ?? [])
-            ->unique()->sort()->values();
+        $allGenres = Genre::orderBy('name')->pluck('name');
+        $allStyles = Style::orderBy('name')->pluck('name');
 
         return Inertia::render('Collection/Index', [
             'releases' => $releases,
@@ -77,13 +68,21 @@ class CollectionController extends Controller
     public function show(int $id, DiscogsService $discogs): Response
     {
         $release = DiscogsRelease::where('discogs_id', $id)
-            ->with('collectionItem')
+            ->with(['collectionItem', 'genres', 'styles'])
             ->firstOrFail();
 
         $release = $discogs->enrichRelease($release);
 
+        // Reload relationships in case enrichRelease called fresh()
+        $release->load(['genres', 'styles']);
+
         return Inertia::render('Collection/Show', [
-            'release' => $release,
+            'release' => array_merge($release->toArray(), [
+                // Return genre/style names as plain string arrays so the Vue
+                // receives the same shape it always expected.
+                'genres' => $release->genres->pluck('name'),
+                'styles' => $release->styles->pluck('name'),
+            ]),
         ]);
     }
 }
