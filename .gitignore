@@ -28,3 +28,4 @@ Thumbs.db
 /storage/framework/testing
 /storage/framework/views
 /storage/logs
+/compose.yaml
