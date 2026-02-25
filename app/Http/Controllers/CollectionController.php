@@ -34,10 +34,10 @@ class CollectionController extends Controller
         }
 
         $sort = $request->get('sort', 'date_added');
-        $direction = $request->get('direction', 'desc');
+        $direction = in_array($request->get('direction'), ['asc', 'desc']) ? $request->get('direction') : 'desc';
 
         if ($sort === 'value') {
-            $query->orderBy('median_price', $direction === 'asc' ? 'asc' : 'desc');
+            $query->orderBy('median_price', $direction);
         } elseif ($sort === 'year') {
             $query->orderBy('year', $direction);
         } elseif ($sort === 'artist') {
