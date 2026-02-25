@@ -9,31 +9,51 @@ A Laravel + Vue (Inertia.js) application to display and organize your [Discogs](
 - 🔍 **Filter by genre and style** to find records by mood
 - 💰 **Sort by value** using Discogs marketplace price data
 - 🎬 **Album detail pages** with tracklist and YouTube preview embeds
-- ⚡ **Cached data** — local SQLite database prevents hitting Discogs API rate limits
+- ⚡ **Cached data** — MySQL database prevents hitting Discogs API rate limits
 - 🔄 **One-click sync** to keep your local cache up to date
 
 ## Tech Stack
 
-- **Backend**: Laravel 12 (PHP 8.3)
+- **Backend**: Laravel 12 (PHP 8.4)
 - **Frontend**: Vue 3 + Inertia.js
 - **Styling**: Tailwind CSS
-- **Database**: SQLite (local cache)
+- **Database**: MySQL 8.4 (via Docker/Sail)
 - **API**: [Discogs REST API](https://www.discogs.com/developers/)
 
-## Setup
+## Setup (with Laravel Sail)
 
-### 1. Install dependencies
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+
+### 1. Install PHP dependencies
 
 ```bash
 composer install
-npm install
 ```
 
 ### 2. Configure environment
 
 ```bash
 cp .env.example .env
-php artisan key:generate
+```
+
+### 3. Start Sail
+
+```bash
+./vendor/bin/sail up -d
+```
+
+### 4. Generate app key and run migrations
+
+```bash
+./vendor/bin/sail artisan key:generate
+./vendor/bin/sail artisan migrate
+```
+
+### 5. Install Node dependencies and build assets
+
+```bash
+./vendor/bin/sail npm install
+./vendor/bin/sail npm run dev
 ```
 
 Optionally add your Discogs personal access token to `.env` for higher API rate limits:
@@ -41,20 +61,6 @@ Optionally add your Discogs personal access token to `.env` for higher API rate 
 DISCOGS_TOKEN=your_token_here
 ```
 Get a token at: https://www.discogs.com/settings/developers
-
-### 3. Set up the database
-
-```bash
-touch database/database.sqlite
-php artisan migrate
-```
-
-### 4. Build assets and run
-
-```bash
-npm run build
-php artisan serve
-```
 
 ## Syncing Your Collection
 
@@ -65,7 +71,7 @@ php artisan serve
 
 ### Via Artisan Command
 ```bash
-php artisan discogs:sync your-discogs-username
+./vendor/bin/sail artisan discogs:sync your-discogs-username
 ```
 
 ## Keeping Data Fresh
@@ -73,8 +79,8 @@ php artisan discogs:sync your-discogs-username
 Run the sync command on a schedule to keep prices and collection data updated:
 
 ```bash
-# Add to crontab or Laravel scheduler in routes/console.php
-php artisan discogs:sync
+# Add to routes/console.php (Laravel scheduler)
+./vendor/bin/sail artisan discogs:sync
 ```
 
 ## Notes
