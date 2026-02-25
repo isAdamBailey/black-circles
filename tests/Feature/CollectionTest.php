@@ -1,103 +1,75 @@
 <?php
 
-namespace Tests\Feature;
-
 use App\Models\DiscogsCollectionItem;
 use App\Models\DiscogsRelease;
 use App\Models\Setting;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 
-class CollectionTest extends TestCase
-{
-    use RefreshDatabase;
+it('renders the collection index page', function () {
+    $this->get(route('collection.index'))
+        ->assertStatus(200)
+        ->assertInertia(fn ($page) => $page->component('Collection/Index'));
+});
 
-    public function test_collection_index_renders(): void
-    {
-        $response = $this->get(route('collection.index'));
+it('shows releases on the collection index', function () {
+    $release = DiscogsRelease::factory()->create();
+    DiscogsCollectionItem::factory()->for($release, 'release')->create();
 
-        $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page->component('Collection/Index'));
-    }
-
-    public function test_collection_index_shows_releases(): void
-    {
-        $release = DiscogsRelease::factory()->create();
-        DiscogsCollectionItem::factory()->for($release, 'release')->create();
-
-        $response = $this->get(route('collection.index'));
-
-        $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
+    $this->get(route('collection.index'))
+        ->assertStatus(200)
+        ->assertInertia(fn ($page) => $page
             ->component('Collection/Index')
             ->has('releases.data', 1)
         );
-    }
+});
 
-    public function test_collection_show_renders(): void
-    {
-        $release = DiscogsRelease::factory()->create([
-            'release_data_cached_at' => now(),
-        ]);
+it('renders a release detail page', function () {
+    $release = DiscogsRelease::factory()->create([
+        'release_data_cached_at' => now(),
+    ]);
 
-        $response = $this->get(route('collection.show', $release->discogs_id));
+    $this->get(route('collection.show', $release->discogs_id))
+        ->assertStatus(200)
+        ->assertInertia(fn ($page) => $page->component('Collection/Show'));
+});
 
-        $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page->component('Collection/Show'));
-    }
+it('filters releases by genre', function () {
+    DiscogsRelease::factory()->withGenres(['Rock'])->create();
+    DiscogsRelease::factory()->withGenres(['Electronic'])->create();
 
-    public function test_collection_can_be_filtered_by_genre(): void
-    {
-        DiscogsRelease::factory()->withGenres(['Rock'])->create();
-        DiscogsRelease::factory()->withGenres(['Electronic'])->create();
-
-        $response = $this->get(route('collection.index', ['genres' => 'Rock']));
-
-        $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
+    $this->get(route('collection.index', ['genres' => 'Rock']))
+        ->assertStatus(200)
+        ->assertInertia(fn ($page) => $page
             ->component('Collection/Index')
             ->has('releases.data', 1)
         );
-    }
+});
 
-    public function test_collection_can_be_searched(): void
-    {
-        DiscogsRelease::factory()->create(['title' => 'Dark Side of the Moon', 'artist' => 'Pink Floyd']);
-        DiscogsRelease::factory()->create(['title' => 'Rumours', 'artist' => 'Fleetwood Mac']);
+it('searches releases by artist name', function () {
+    DiscogsRelease::factory()->create(['title' => 'Dark Side of the Moon', 'artist' => 'Pink Floyd']);
+    DiscogsRelease::factory()->create(['title' => 'Rumours', 'artist' => 'Fleetwood Mac']);
 
-        $response = $this->get(route('collection.index', ['search' => 'Pink Floyd']));
-
-        $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
+    $this->get(route('collection.index', ['search' => 'Pink Floyd']))
+        ->assertStatus(200)
+        ->assertInertia(fn ($page) => $page
             ->component('Collection/Index')
             ->has('releases.data', 1)
         );
-    }
+});
 
-    public function test_settings_index_renders(): void
-    {
-        $response = $this->get(route('settings.index'));
+it('renders the settings page', function () {
+    $this->get(route('settings.index'))
+        ->assertStatus(200)
+        ->assertInertia(fn ($page) => $page->component('Settings/Index'));
+});
 
-        $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page->component('Settings/Index'));
-    }
+it('saves the discogs username in settings', function () {
+    $this->post(route('settings.update'), ['discogs_username' => 'testuser'])
+        ->assertRedirect();
 
-    public function test_settings_can_save_username(): void
-    {
-        $response = $this->post(route('settings.update'), [
-            'discogs_username' => 'testuser',
-        ]);
+    expect(Setting::get('discogs_username'))->toBe('testuser');
+});
 
-        $response->assertRedirect();
-        $this->assertEquals('testuser', Setting::get('discogs_username'));
-    }
-
-    public function test_settings_username_is_required(): void
-    {
-        $response = $this->post(route('settings.update'), [
-            'discogs_username' => '',
-        ]);
-
-        $response->assertSessionHasErrors('discogs_username');
-    }
-}
+it('requires a discogs username when saving settings', function () {
+    $this->post(route('settings.update'), ['discogs_username' => ''])
+        ->assertSessionHasErrors('discogs_username');
+});
