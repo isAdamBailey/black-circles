@@ -115,7 +115,7 @@ class DiscogsService
         );
     }
 
-    public function syncCollection(string $username): array
+    public function syncCollection(string $username, bool $skipPrices = false): array
     {
         $synced = 0;
         $page = 1;
@@ -192,12 +192,14 @@ class DiscogsService
                     ]
                 );
 
-                $stats = $this->getMarketplaceStats($releaseId);
-                $lowest = ($stats && isset($stats['lowest_price']['value'])) ? $stats['lowest_price']['value'] : null;
-                $release->update(['lowest_price' => $lowest]);
+                if (! $skipPrices) {
+                    $stats = $this->getMarketplaceStats($releaseId);
+                    $lowest = ($stats && isset($stats['lowest_price']['value'])) ? $stats['lowest_price']['value'] : null;
+                    $release->update(['lowest_price' => $lowest]);
+                }
 
                 $synced++;
-                usleep(1_500_000);
+                usleep($skipPrices ? 500_000 : 1_500_000);
             }
 
             $page++;

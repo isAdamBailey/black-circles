@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 
 class SyncDiscogsCollection extends Command
 {
-    protected $signature = 'discogs:sync {username? : Discogs username to sync}';
+    protected $signature = 'discogs:sync {username? : Discogs username to sync} {--fast : Skip marketplace stats (halves API calls, prices fetched on page view)}';
 
     protected $description = 'Sync Discogs collection for a given username';
 
@@ -26,7 +26,7 @@ class SyncDiscogsCollection extends Command
 
         $discogs->setProgressCallback(fn (string $message) => $this->line($message));
 
-        $result = $discogs->syncCollection($username);
+        $result = $discogs->syncCollection($username, $this->option('fast'));
 
         $this->info("Synced {$result['synced']} items.");
 
