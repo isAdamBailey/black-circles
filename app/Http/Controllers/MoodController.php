@@ -87,17 +87,17 @@ class MoodController extends Controller
         $config = self::MOODS[$moodKey];
         $pool = $this->fetchMatchingReleases($config, 5);
 
-        if ($pool->isEmpty()     ) {
-            $pool = 
+        if ($pool->isEmpty()) {
+            $pool =
             DiscogsRelease::query()
                 ->whereHas('collectionItem')
-            ->with(['genres', 'styles'])
+                ->with(['genres', 'styles'])
                 ->inRandomOrder()
-                ->limit(5 )
+                ->limit(5)
                 ->get();
         }
 
-        if (     $pool->isEmpty()) {
+        if ($pool->isEmpty()) {
             return redirect()->route('home')->with('error', 'Your collection is empty. Sync your Discogs collection to get suggestions.');
         }
 
