@@ -14,7 +14,7 @@ const flash = computed(() => page.props.flash ?? {});
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center gap-8">
-                        <Link :href="route('collection.index')" class="flex items-center gap-2">
+                        <Link :href="route('home')" class="flex items-center gap-2">
                             <span class="text-2xl">⚫</span>
                             <span class="text-xl font-bold tracking-tight text-white">Black Circles</span>
                         </Link>
