@@ -247,7 +247,7 @@ const formats = computed(() => {
                     >
                         <div class="relative aspect-video">
                             <iframe
-                                :src="`https://www.youtube.com/embed/${video.youtubeId}`"
+                                :src="`https://www.youtube-nocookie.com/embed/${video.youtubeId}`"
                                 :title="video.title"
                                 class="w-full h-full"
                                 frameborder="0"
