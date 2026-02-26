@@ -125,7 +125,7 @@ const formats = computed(() => {
                         class="mt-4 bg-gray-900 rounded-xl p-4 border border-gray-800"
                     >
                         <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                            Lowest for sale
+                            Lowest listed price
                         </h3>
                         <div class="text-xl font-bold text-green-400">
                             ${{ Number(release.lowest_price).toFixed(2) }}
@@ -136,17 +136,19 @@ const formats = computed(() => {
                 <!-- Release Info -->
                 <div class="md:col-span-3">
                     <div class="flex flex-wrap items-center gap-2 mb-3">
-                        <span
+                        <Link
                             v-for="genre in genres"
                             :key="genre"
-                            class="px-2.5 py-1 bg-gray-800 text-gray-300 text-xs rounded-full"
-                            >{{ genre }}</span
+                            :href="route('collection.index', { genres: [genre] })"
+                            class="px-2.5 py-1 bg-gray-800 text-gray-300 text-xs rounded-full hover:bg-gray-700 hover:text-white transition-colors"
+                            >{{ genre }}</Link
                         >
-                        <span
+                        <Link
                             v-for="style in styles"
                             :key="style"
-                            class="px-2.5 py-1 bg-gray-700 text-gray-400 text-xs rounded-full"
-                            >{{ style }}</span
+                            :href="route('collection.index', { styles: [style] })"
+                            class="px-2.5 py-1 bg-gray-700 text-gray-400 text-xs rounded-full hover:bg-gray-600 hover:text-white transition-colors"
+                            >{{ style }}</Link
                         >
                     </div>
 

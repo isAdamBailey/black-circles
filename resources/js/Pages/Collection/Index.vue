@@ -219,7 +219,7 @@ const releasesData = computed(() => props.releases?.data ?? []);
                             </option>
                         </select>
                         <p v-if="sort === 'value'" class="text-gray-500 text-xs">
-                            Value = lowest listed. Many have no price until you open them or until copies are for sale.
+                            Lowest listed price
                         </p>
                     </div>
                     <button
@@ -295,6 +295,14 @@ const releasesData = computed(() => props.releases?.data ?? []);
                                 </button>
                             </div>
                         </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-800">
+                        <button
+                            class="w-full sm:w-auto px-4 py-2.5 bg-white text-black font-medium rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                            @click="showFilters = false"
+                        >
+                            Find results
+                        </button>
                     </div>
                 </div>
 
