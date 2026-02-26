@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 
 class HuggingFaceService
 {
-    private const MODEL = 'facebook/bart-large-mnli';
+    private const MODEL = 'MoritzLaurer/deberta-v3-base-zeroshot-v2.0';
 
     private const THRESHOLD = 0.15;
 
