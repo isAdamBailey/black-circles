@@ -69,5 +69,4 @@ class VibeController extends Controller
             'backups' => $backups,
         ]);
     }
-
 }

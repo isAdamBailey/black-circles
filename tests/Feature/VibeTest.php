@@ -85,4 +85,3 @@ it('redirects to home when collection is empty', function () {
     $response->assertRedirect(route('home'))
         ->assertSessionHas('error');
 });
-

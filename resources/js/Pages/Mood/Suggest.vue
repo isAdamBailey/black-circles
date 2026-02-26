@@ -15,13 +15,21 @@ function tryAgain() {
     if (retrying.value) return;
     retrying.value = true;
     if (props.mood.vibePrompt) {
-        router.post(route('vibe.suggest'), { prompt: props.mood.vibePrompt }, {
-            preserveScroll: true,
-            onFinish: () => { retrying.value = false; },
-        });
+        router.post(
+            route('vibe.suggest'),
+            { prompt: props.mood.vibePrompt },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    retrying.value = false;
+                },
+            }
+        );
     } else {
         router.visit(route('mood.suggest', props.mood.slug), {
-            onFinish: () => { retrying.value = false; },
+            onFinish: () => {
+                retrying.value = false;
+            },
         });
     }
 }

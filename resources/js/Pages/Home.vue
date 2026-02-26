@@ -16,10 +16,16 @@ function submitVibe() {
     const p = prompt.value.trim();
     if (!p || p.length < 3) return;
     processing.value = true;
-    router.post(route('vibe.suggest'), { prompt: p }, {
-        preserveScroll: true,
-        onFinish: () => { processing.value = false; },
-    });
+    router.post(
+        route('vibe.suggest'),
+        { prompt: p },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                processing.value = false;
+            },
+        }
+    );
 }
 </script>
 
@@ -30,9 +36,7 @@ function submitVibe() {
         <div class="min-h-[calc(100vh-4rem)] flex flex-col">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 flex flex-col justify-center">
                 <h1 class="text-4xl sm:text-5xl font-bold text-white text-center mb-3">What’s the vibe?</h1>
-                <p class="text-gray-500 text-center mb-8">
-                    Describe the music you want, or pick a mood
-                </p>
+                <p class="text-gray-500 text-center mb-8">Describe the music you want, or pick a mood</p>
 
                 <form
                     v-if="username"
@@ -50,9 +54,7 @@ function submitVibe() {
                         {{ processing ? 'Finding...' : 'Find it' }}
                     </PrimaryButton>
                 </form>
-                <p v-if="username" class="text-center text-gray-600 text-sm mb-6">
-                    Uses AI — results may vary
-                </p>
+                <p v-if="username" class="text-center text-gray-600 text-sm mb-6">Uses AI — results may vary</p>
 
                 <div v-if="!username" class="text-center py-16">
                     <div class="text-6xl mb-4">⚫</div>
