@@ -23,7 +23,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: 8.4
-          extensions: dom, curl, libxml, mbstring, zip
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, pdo_mysql
           coverage: none
 
       - name: Setup Node
@@ -46,6 +46,18 @@ jobs:
 
       - name: Run Prettier
         run: npm run format
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Generate app key
+        run: php artisan key:generate
+
+      - name: Run Pest
+        run: ./vendor/bin/pest
+
+      - name: Run Vitest
+        run: npm run test
 
       - name: Commit and push changes
         run: |
