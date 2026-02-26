@@ -32,5 +32,8 @@
         "vite": "^6.0.0",
         "vitest": "^4.0.18",
         "vue": "^3.4.0"
+    },
+    "dependencies": {
+        "vue-gtag": "^3.7.0"
     }
 }
