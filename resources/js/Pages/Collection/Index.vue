@@ -14,8 +14,12 @@ const props = defineProps({
 });
 
 const search = ref(props.filters.search ?? '');
-const selectedGenres = ref(props.filters.genres ? (Array.isArray(props.filters.genres) ? props.filters.genres : [props.filters.genres]) : []);
-const selectedStyles = ref(props.filters.styles ? (Array.isArray(props.filters.styles) ? props.filters.styles : [props.filters.styles]) : []);
+const selectedGenres = ref(
+    props.filters.genres ? (Array.isArray(props.filters.genres) ? props.filters.genres : [props.filters.genres]) : []
+);
+const selectedStyles = ref(
+    props.filters.styles ? (Array.isArray(props.filters.styles) ? props.filters.styles : [props.filters.styles]) : []
+);
 const sort = ref(props.filters.sort ?? 'date_added');
 const direction = ref(props.filters.direction ?? 'desc');
 const showFilters = ref(false);
@@ -28,13 +32,17 @@ let searchTimeout = null;
 let suggestionTimeout = null;
 
 function applyFilters() {
-    router.get(route('collection.index'), {
-        search: search.value || undefined,
-        genres: selectedGenres.value.length ? selectedGenres.value : undefined,
-        styles: selectedStyles.value.length ? selectedStyles.value : undefined,
-        sort: sort.value,
-        direction: direction.value,
-    }, { preserveState: true, replace: true, reset: ['releases'] });
+    router.get(
+        route('collection.index'),
+        {
+            search: search.value || undefined,
+            genres: selectedGenres.value.length ? selectedGenres.value : undefined,
+            styles: selectedStyles.value.length ? selectedStyles.value : undefined,
+            sort: sort.value,
+            direction: direction.value,
+        },
+        { preserveState: true, replace: true, reset: ['releases'] }
+    );
 }
 
 watch(search, () => {
@@ -143,7 +151,12 @@ const releasesData = computed(() => props.releases?.data ?? []);
                 <div class="text-6xl mb-4">⚫</div>
                 <h2 class="text-xl font-semibold text-gray-300 mb-2">No collection synced yet</h2>
                 <p class="text-gray-500 mb-6">
-                    Set <code class="text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded text-sm">DISCOGS_USERNAME</code> in .env and run <code class="text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded text-sm">sail artisan discogs:sync</code> to get started.
+                    Set <code class="text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded text-sm">DISCOGS_USERNAME</code> in
+                    .env and run
+                    <code class="text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded text-sm"
+                        >sail artisan discogs:sync</code
+                    >
+                    to get started.
                 </p>
             </div>
 
@@ -158,7 +171,13 @@ const releasesData = computed(() => props.releases?.data ?? []);
                             autocomplete="off"
                             class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-gray-500 text-sm"
                         />
-                        <button v-if="search" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300" @click="search = ''">✕</button>
+                        <button
+                            v-if="search"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                            @click="search = ''"
+                        >
+                            ✕
+                        </button>
                         <div
                             v-if="showSuggestions && (suggestions.length || fetchingSuggestions)"
                             class="absolute top-full left-0 right-0 mt-1 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 max-h-64 overflow-auto"
@@ -171,8 +190,18 @@ const releasesData = computed(() => props.releases?.data ?? []);
                                 class="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-800 transition-colors"
                                 @click="selectSuggestion(r)"
                             >
-                                <img v-if="r.thumb" :src="r.thumb" alt="" class="w-10 h-10 rounded object-cover shrink-0" />
-                                <div v-else class="w-10 h-10 rounded bg-gray-700 shrink-0 flex items-center justify-center text-gray-500 text-lg">⚫</div>
+                                <img
+                                    v-if="r.thumb"
+                                    :src="r.thumb"
+                                    alt=""
+                                    class="w-10 h-10 rounded object-cover shrink-0"
+                                />
+                                <div
+                                    v-else
+                                    class="w-10 h-10 rounded bg-gray-700 shrink-0 flex items-center justify-center text-gray-500 text-lg"
+                                >
+                                    ⚫
+                                </div>
                                 <div class="min-w-0 flex-1">
                                     <div class="text-white text-sm font-medium truncate">{{ r.title }}</div>
                                     <div class="text-gray-400 text-xs truncate">{{ r.artist }}</div>
@@ -185,7 +214,9 @@ const releasesData = computed(() => props.releases?.data ?? []);
                             v-model="sort"
                             class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-gray-500"
                         >
-                            <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                            <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">
+                                {{ opt.label }}
+                            </option>
                         </select>
                         <p v-if="sort === 'value'" class="text-gray-500 text-xs">
                             Value = lowest listed. Many have no price until you open them or until copies are for sale.
@@ -200,10 +231,19 @@ const releasesData = computed(() => props.releases?.data ?? []);
                     </button>
                     <button
                         class="px-4 py-2.5 bg-gray-900 border rounded-lg text-sm transition-colors"
-                        :class="(selectedGenres.length || selectedStyles.length) ? 'border-white text-white' : 'border-gray-700 text-gray-400 hover:text-white'"
+                        :class="
+                            selectedGenres.length || selectedStyles.length
+                                ? 'border-white text-white'
+                                : 'border-gray-700 text-gray-400 hover:text-white'
+                        "
                         @click="showFilters = !showFilters"
                     >
-                        Filter {{ selectedGenres.length + selectedStyles.length > 0 ? `(${selectedGenres.length + selectedStyles.length})` : '' }}
+                        Filter
+                        {{
+                            selectedGenres.length + selectedStyles.length > 0
+                                ? `(${selectedGenres.length + selectedStyles.length})`
+                                : ''
+                        }}
                     </button>
                 </div>
 
@@ -211,7 +251,12 @@ const releasesData = computed(() => props.releases?.data ?? []);
                 <div v-if="showFilters" class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Filters</h3>
-                        <button class="text-xs text-gray-500 hover:text-gray-300 transition-colors" @click="clearFilters">Clear all</button>
+                        <button
+                            class="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                            @click="clearFilters"
+                        >
+                            Clear all
+                        </button>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div v-if="allGenres.length">
@@ -221,9 +266,11 @@ const releasesData = computed(() => props.releases?.data ?? []);
                                     v-for="genre in allGenres"
                                     :key="genre"
                                     class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-                                    :class="selectedGenres.includes(genre)
-                                        ? 'bg-white text-black'
-                                        : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'"
+                                    :class="
+                                        selectedGenres.includes(genre)
+                                            ? 'bg-white text-black'
+                                            : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+                                    "
                                     @click="toggleGenre(genre)"
                                 >
                                     {{ genre }}
@@ -237,9 +284,11 @@ const releasesData = computed(() => props.releases?.data ?? []);
                                     v-for="style in allStyles"
                                     :key="style"
                                     class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-                                    :class="selectedStyles.includes(style)
-                                        ? 'bg-white text-black'
-                                        : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'"
+                                    :class="
+                                        selectedStyles.includes(style)
+                                            ? 'bg-white text-black'
+                                            : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+                                    "
                                     @click="toggleStyle(style)"
                                 >
                                     {{ style }}
@@ -254,7 +303,9 @@ const releasesData = computed(() => props.releases?.data ?? []);
                     <div class="text-5xl mb-4">🔍</div>
                     <h2 class="text-lg font-semibold text-gray-300 mb-2">No records found</h2>
                     <p class="text-gray-500 text-sm">Try adjusting your search or filters.</p>
-                    <button class="mt-4 text-sm text-gray-400 hover:text-white underline" @click="clearFilters">Clear filters</button>
+                    <button class="mt-4 text-sm text-gray-400 hover:text-white underline" @click="clearFilters">
+                        Clear filters
+                    </button>
                 </div>
 
                 <!-- Album Grid -->
@@ -274,21 +325,40 @@ const releasesData = computed(() => props.releases?.data ?? []);
                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                     loading="lazy"
                                 />
-                                <div v-else class="w-full h-full flex items-center justify-center text-4xl text-gray-600">⚫</div>
-                                <div v-if="release.collection_item?.rating" class="absolute top-2 right-2 bg-black/70 rounded-full px-2 py-0.5 text-xs text-yellow-400">
+                                <div
+                                    v-else
+                                    class="w-full h-full flex items-center justify-center text-4xl text-gray-600"
+                                >
+                                    ⚫
+                                </div>
+                                <div
+                                    v-if="release.collection_item?.rating"
+                                    class="absolute top-2 right-2 bg-black/70 rounded-full px-2 py-0.5 text-xs text-yellow-400"
+                                >
                                     {{ '★'.repeat(release.collection_item.rating) }}
                                 </div>
-                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-end p-2 opacity-0 group-hover:opacity-100">
+                                <div
+                                    class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-end p-2 opacity-0 group-hover:opacity-100"
+                                >
                                     <span class="text-white text-xs font-medium truncate">View details</span>
                                 </div>
                             </div>
                             <div class="px-0.5">
-                                <p class="text-white text-xs font-semibold truncate leading-tight">{{ release.title }}</p>
+                                <p class="text-white text-xs font-semibold truncate leading-tight">
+                                    {{ release.title }}
+                                </p>
                                 <p class="text-gray-400 text-xs truncate mt-0.5">{{ release.artist }}</p>
                                 <div class="flex items-center justify-between mt-1 gap-1">
-                                    <span class="text-gray-600 text-xs shrink-0">{{ release.year && release.year !== 0 ? release.year : '—' }}</span>
-                                    <div v-if="release.lowest_price != null" class="text-right text-xs text-gray-400 shrink min-w-0">
-                                        <span class="text-green-400">${{ Number(release.lowest_price).toFixed(0) }}</span>
+                                    <span class="text-gray-600 text-xs shrink-0">{{
+                                        release.year && release.year !== 0 ? release.year : '—'
+                                    }}</span>
+                                    <div
+                                        v-if="release.lowest_price != null"
+                                        class="text-right text-xs text-gray-400 shrink min-w-0"
+                                    >
+                                        <span class="text-green-400"
+                                            >${{ Number(release.lowest_price).toFixed(0) }}</span
+                                        >
                                     </div>
                                 </div>
                             </div>

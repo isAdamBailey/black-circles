@@ -22,7 +22,9 @@ const flash = computed(() => page.props.flash ?? {});
                             <Link
                                 :href="route('collection.index')"
                                 class="text-sm font-medium transition-colors"
-                                :class="route().current('collection.*') ? 'text-white' : 'text-gray-400 hover:text-white'"
+                                :class="
+                                    route().current('collection.*') ? 'text-white' : 'text-gray-400 hover:text-white'
+                                "
                             >
                                 Collection
                             </Link>
@@ -30,7 +32,9 @@ const flash = computed(() => page.props.flash ?? {});
                     </div>
                     <!-- Mobile nav -->
                     <div class="sm:hidden flex gap-4">
-                        <Link :href="route('collection.index')" class="text-gray-400 hover:text-white text-sm">Collection</Link>
+                        <Link :href="route('collection.index')" class="text-gray-400 hover:text-white text-sm"
+                            >Collection</Link
+                        >
                     </div>
                 </div>
             </div>
@@ -38,10 +42,16 @@ const flash = computed(() => page.props.flash ?? {});
 
         <!-- Flash messages -->
         <div v-if="flash.success || flash.error" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-            <div v-if="flash.success" class="bg-green-900/50 border border-green-700 text-green-300 px-4 py-3 rounded-lg text-sm">
+            <div
+                v-if="flash.success"
+                class="bg-green-900/50 border border-green-700 text-green-300 px-4 py-3 rounded-lg text-sm"
+            >
                 {{ flash.success }}
             </div>
-            <div v-if="flash.error" class="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg text-sm">
+            <div
+                v-if="flash.error"
+                class="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg text-sm"
+            >
                 {{ flash.error }}
             </div>
         </div>

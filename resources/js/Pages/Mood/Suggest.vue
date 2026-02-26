@@ -18,7 +18,10 @@ function tryAgain() {
         <Head :title="`${mood.label} – Discover`" />
 
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <Link :href="route('home')" class="inline-flex items-center gap-2 text-gray-500 hover:text-white text-sm mb-8 transition-colors">
+            <Link
+                :href="route('home')"
+                class="inline-flex items-center gap-2 text-gray-500 hover:text-white text-sm mb-8 transition-colors"
+            >
                 ← Different mood
             </Link>
 
@@ -32,20 +35,34 @@ function tryAgain() {
                     :href="route('collection.show', primary.discogs_id)"
                     class="group block md:flex-shrink-0 md:w-2/5"
                 >
-                    <div class="aspect-square bg-gray-800 rounded-xl overflow-hidden mb-4 shadow-xl group-hover:scale-[1.02] transition-transform">
+                    <div
+                        class="aspect-square bg-gray-800 rounded-xl overflow-hidden mb-4 shadow-xl group-hover:scale-[1.02] transition-transform"
+                    >
                         <img
                             v-if="primary.cover_image"
                             :src="primary.cover_image"
                             :alt="primary.title"
                             class="w-full h-full object-cover"
                         />
-                        <div v-else class="w-full h-full flex items-center justify-center text-8xl text-gray-600">⚫</div>
+                        <div v-else class="w-full h-full flex items-center justify-center text-8xl text-gray-600">
+                            ⚫
+                        </div>
                     </div>
                     <h2 class="text-xl font-bold text-white truncate group-hover:underline">{{ primary.title }}</h2>
                     <p class="text-gray-400 truncate">{{ primary.artist }}</p>
                     <div class="flex flex-wrap gap-1.5 mt-2">
-                        <span v-for="g in primary.genres" :key="g" class="px-2 py-0.5 bg-gray-800 text-gray-400 text-xs rounded-full">{{ g }}</span>
-                        <span v-for="s in primary.styles" :key="s" class="px-2 py-0.5 bg-gray-700 text-gray-500 text-xs rounded-full">{{ s }}</span>
+                        <span
+                            v-for="g in primary.genres"
+                            :key="g"
+                            class="px-2 py-0.5 bg-gray-800 text-gray-400 text-xs rounded-full"
+                            >{{ g }}</span
+                        >
+                        <span
+                            v-for="s in primary.styles"
+                            :key="s"
+                            class="px-2 py-0.5 bg-gray-700 text-gray-500 text-xs rounded-full"
+                            >{{ s }}</span
+                        >
                     </div>
                 </Link>
 
@@ -72,14 +89,18 @@ function tryAgain() {
                         :href="route('collection.show', r.discogs_id)"
                         class="group block"
                     >
-                        <div class="relative aspect-square bg-gray-800 rounded-lg overflow-hidden mb-2 group-hover:scale-105 transition-transform">
+                        <div
+                            class="relative aspect-square bg-gray-800 rounded-lg overflow-hidden mb-2 group-hover:scale-105 transition-transform"
+                        >
                             <img
                                 v-if="r.cover_image || r.thumb"
                                 :src="r.cover_image || r.thumb"
                                 :alt="r.title"
                                 class="w-full h-full object-cover"
                             />
-                            <div v-else class="w-full h-full flex items-center justify-center text-4xl text-gray-600">⚫</div>
+                            <div v-else class="w-full h-full flex items-center justify-center text-4xl text-gray-600">
+                                ⚫
+                            </div>
                         </div>
                         <p class="text-white text-sm font-medium truncate">{{ r.title }}</p>
                         <p class="text-gray-500 text-xs truncate">{{ r.artist }}</p>

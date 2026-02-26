@@ -11,7 +11,7 @@ const imageIndex = ref(0);
 
 const imageList = computed(() => {
     if (props.release.images && Array.isArray(props.release.images) && props.release.images.length > 0) {
-        return props.release.images.map(img => img.uri || img).filter(Boolean);
+        return props.release.images.map((img) => img.uri || img).filter(Boolean);
     }
     if (props.release.cover_image) return [props.release.cover_image];
     return [];
@@ -37,8 +37,8 @@ function getYouTubeId(url) {
 const youtubeVideos = computed(() => {
     if (!props.release.videos) return [];
     return props.release.videos
-        .filter(v => v.uri && v.embed !== false && getYouTubeId(v.uri))
-        .map(v => ({ ...v, youtubeId: getYouTubeId(v.uri) }));
+        .filter((v) => v.uri && v.embed !== false && getYouTubeId(v.uri))
+        .map((v) => ({ ...v, youtubeId: getYouTubeId(v.uri) }));
 });
 
 const genres = computed(() => {
@@ -68,7 +68,10 @@ const formats = computed(() => {
 
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <!-- Back -->
-            <Link :href="route('collection.index')" class="inline-flex items-center gap-2 text-gray-500 hover:text-white text-sm mb-8 transition-colors">
+            <Link
+                :href="route('collection.index')"
+                class="inline-flex items-center gap-2 text-gray-500 hover:text-white text-sm mb-8 transition-colors"
+            >
                 ← Back to collection
             </Link>
 
@@ -83,7 +86,9 @@ const formats = computed(() => {
                             :alt="release.title"
                             class="w-full h-full object-cover"
                         />
-                        <div v-else class="w-full h-full flex items-center justify-center text-8xl text-gray-600">⚫</div>
+                        <div v-else class="w-full h-full flex items-center justify-center text-8xl text-gray-600">
+                            ⚫
+                        </div>
                         <template v-if="imageList.length > 1">
                             <button
                                 type="button"
@@ -115,17 +120,34 @@ const formats = computed(() => {
                         </template>
                     </div>
                     <!-- Price info -->
-                    <div v-if="release.lowest_price != null" class="mt-4 bg-gray-900 rounded-xl p-4 border border-gray-800">
-                        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Lowest for sale</h3>
-                        <div class="text-xl font-bold text-green-400">${{ Number(release.lowest_price).toFixed(2) }}</div>
+                    <div
+                        v-if="release.lowest_price != null"
+                        class="mt-4 bg-gray-900 rounded-xl p-4 border border-gray-800"
+                    >
+                        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                            Lowest for sale
+                        </h3>
+                        <div class="text-xl font-bold text-green-400">
+                            ${{ Number(release.lowest_price).toFixed(2) }}
+                        </div>
                     </div>
                 </div>
 
                 <!-- Release Info -->
                 <div class="md:col-span-3">
                     <div class="flex flex-wrap items-center gap-2 mb-3">
-                        <span v-for="genre in genres" :key="genre" class="px-2.5 py-1 bg-gray-800 text-gray-300 text-xs rounded-full">{{ genre }}</span>
-                        <span v-for="style in styles" :key="style" class="px-2.5 py-1 bg-gray-700 text-gray-400 text-xs rounded-full">{{ style }}</span>
+                        <span
+                            v-for="genre in genres"
+                            :key="genre"
+                            class="px-2.5 py-1 bg-gray-800 text-gray-300 text-xs rounded-full"
+                            >{{ genre }}</span
+                        >
+                        <span
+                            v-for="style in styles"
+                            :key="style"
+                            class="px-2.5 py-1 bg-gray-700 text-gray-400 text-xs rounded-full"
+                            >{{ style }}</span
+                        >
                     </div>
 
                     <h1 class="text-3xl font-bold text-white leading-tight mb-2">{{ release.title }}</h1>
@@ -146,15 +168,26 @@ const formats = computed(() => {
                         </div>
                         <div v-if="formats.length">
                             <dt class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Format</dt>
-                            <dd class="text-white">{{ formats.map(f => f.name).join(', ') }}</dd>
+                            <dd class="text-white">{{ formats.map((f) => f.name).join(', ') }}</dd>
                         </div>
                         <div v-if="release.collection_item?.rating">
                             <dt class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">My Rating</dt>
-                            <dd class="text-yellow-400">{{ '★'.repeat(release.collection_item.rating) }}{{ '☆'.repeat(5 - release.collection_item.rating) }}</dd>
+                            <dd class="text-yellow-400">
+                                {{ '★'.repeat(release.collection_item.rating)
+                                }}{{ '☆'.repeat(5 - release.collection_item.rating) }}
+                            </dd>
                         </div>
                         <div v-if="release.collection_item?.date_added">
                             <dt class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Added</dt>
-                            <dd class="text-white">{{ new Date(release.collection_item.date_added).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) }}</dd>
+                            <dd class="text-white">
+                                {{
+                                    new Date(release.collection_item.date_added).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric',
+                                    })
+                                }}
+                            </dd>
                         </div>
                     </dl>
 
@@ -188,10 +221,14 @@ const formats = computed(() => {
                         <template v-if="track.type_ !== 'heading'">
                             <span class="text-gray-600 text-xs w-8 shrink-0 text-right">{{ track.position }}</span>
                             <span class="text-white text-sm flex-1">{{ track.title }}</span>
-                            <span v-if="track.duration" class="text-gray-500 text-xs shrink-0">{{ track.duration }}</span>
+                            <span v-if="track.duration" class="text-gray-500 text-xs shrink-0">{{
+                                track.duration
+                            }}</span>
                         </template>
                         <template v-else>
-                            <span class="text-gray-400 text-xs font-semibold uppercase tracking-wider">{{ track.title }}</span>
+                            <span class="text-gray-400 text-xs font-semibold uppercase tracking-wider">{{
+                                track.title
+                            }}</span>
                         </template>
                     </div>
                 </div>
@@ -201,14 +238,25 @@ const formats = computed(() => {
             <div v-if="youtubeVideos.length" class="mb-10">
                 <h2 class="text-lg font-bold text-white mb-4">Videos</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div v-for="video in youtubeVideos" :key="video.youtubeId" class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+                    <div
+                        v-for="video in youtubeVideos"
+                        :key="video.youtubeId"
+                        class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden"
+                    >
                         <div class="relative aspect-video">
                             <iframe
                                 :src="`https://www.youtube.com/embed/${video.youtubeId}`"
                                 :title="video.title"
                                 class="w-full h-full"
                                 frameborder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allow="
+                                    accelerometer;
+                                    autoplay;
+                                    clipboard-write;
+                                    encrypted-media;
+                                    gyroscope;
+                                    picture-in-picture;
+                                "
                                 allowfullscreen
                             ></iframe>
                         </div>
