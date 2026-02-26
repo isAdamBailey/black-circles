@@ -40,7 +40,7 @@ function submitVibe() {
 
                 <form
                     v-if="username"
-                    class="mb-2 flex flex-col sm:flex-row gap-3 max-w-xl mx-auto"
+                    class="mb-2 flex flex-col sm:flex-row gap-3 max-w-3xl mx-auto w-full"
                     @submit.prevent="submitVibe"
                 >
                     <input
