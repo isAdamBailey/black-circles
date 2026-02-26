@@ -15,7 +15,7 @@ A Laravel + Vue (Inertia.js) application to display and organize your [Discogs](
 
 ## Tech Stack
 
-- **Backend**: Laravel 12 (PHP 8.4)
+- **Backend**: Laravel 12 (PHP 8.3)
 - **Frontend**: Vue 3 + Inertia.js
 - **Styling**: Tailwind CSS
 - **Database**: MySQL 8.4 (via Docker/Sail)
