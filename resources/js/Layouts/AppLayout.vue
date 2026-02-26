@@ -8,14 +8,14 @@ const flash = computed(() => page.props.flash ?? {});
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-950 text-gray-100">
+    <div class="min-h-screen bg-gray-950 text-gray-100 flex flex-col">
         <!-- Navigation -->
         <nav class="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center gap-8">
                         <Link :href="route('home')" class="flex items-center gap-2">
-                            <span class="text-2xl">⚫</span>
+                            <img src="/images/logo.svg" alt="" class="h-8 w-8" />
                             <span class="text-xl font-bold tracking-tight text-white">Black Circles</span>
                         </Link>
                         <div class="hidden sm:flex items-center gap-6">
@@ -57,8 +57,21 @@ const flash = computed(() => page.props.flash ?? {});
         </div>
 
         <!-- Page Content -->
-        <main>
+        <main class="flex-1">
             <slot />
         </main>
+
+        <footer class="border-t border-gray-800 py-6">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <a
+                    href="https://adambailey.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                    © 2026 Adam Bailey
+                </a>
+            </div>
+        </footer>
     </div>
 </template>
