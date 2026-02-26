@@ -34,13 +34,9 @@ class VibeController extends Controller
         $allStyles = Style::orderedNames();
         $labels = array_values(array_unique(array_merge($allGenres, $allStyles)));
 
-        $directMatches = $this->releaseSuggestion->fetchReleasesMatchingArtistOrTitle($prompt, 5);
-
         $pool = collect();
-        if ($directMatches->count() >= 5) {
-            $pool = $directMatches;
-        } elseif (empty($labels)) {
-            $pool = $directMatches->isNotEmpty() ? $directMatches : $this->releaseSuggestion->randomReleases(5);
+        if (empty($labels)) {
+            $pool = $this->releaseSuggestion->randomReleases(5);
         } else {
             $scored = $this->huggingFace->classifyText($prompt, $labels);
             $partitioned = $this->huggingFace->partitionLabels($scored, $allGenres, $allStyles);
@@ -48,12 +44,10 @@ class VibeController extends Controller
             $styles = $partitioned['styles'];
 
             if (! empty($genres) || ! empty($styles)) {
-                $aiPool = $this->releaseSuggestion->fetchMatchingReleases($genres, $styles, [], 5);
-                $aiPool = $aiPool->whereNotIn('id', $directMatches->pluck('id')->toArray());
-                $pool = $directMatches->merge($aiPool)->unique('id')->take(5)->values();
+                $pool = $this->releaseSuggestion->fetchMatchingReleases($genres, $styles, [], 5);
             }
             if ($pool->isEmpty()) {
-                $pool = $directMatches->isNotEmpty() ? $directMatches : $this->releaseSuggestion->randomReleases(5);
+                $pool = $this->releaseSuggestion->randomReleases(5);
             }
         }
 
