@@ -218,9 +218,7 @@ const releasesData = computed(() => props.releases?.data ?? []);
                                 {{ opt.label }}
                             </option>
                         </select>
-                        <p v-if="sort === 'value'" class="text-gray-500 text-xs">
-                            Lowest listed price
-                        </p>
+                        <p v-if="sort === 'value'" class="text-gray-500 text-xs">Lowest listed price</p>
                     </div>
                     <button
                         class="px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-gray-300 hover:text-white text-sm transition-colors"
