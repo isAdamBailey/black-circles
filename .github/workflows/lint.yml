@@ -1,10 +1,10 @@
-name: Lint and Format
+name: Lint, Format, Test, and Commit
 
 on:
   push:
     branches:
       - main
-      - master
+  pull_request:
 
 permissions:
   contents: write
@@ -68,6 +68,7 @@ jobs:
         run: npm run test
 
       - name: Commit and push changes
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
