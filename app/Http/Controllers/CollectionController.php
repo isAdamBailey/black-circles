@@ -51,7 +51,7 @@ class CollectionController extends Controller
             $query->whereHas('styles', fn ($q) => $q->whereIn('name', (array) $styles));
         }
 
-        $sort = trim((string) $request->get('sort', 'date_added'));
+        $sort = trim((string) $request->get('sort', 'value'));
         $direction = in_array($request->get('direction'), ['asc', 'desc']) ? $request->get('direction') : 'desc';
         $dirSql = $direction === 'desc' ? 'DESC' : 'ASC';
 

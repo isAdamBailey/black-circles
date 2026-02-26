@@ -20,7 +20,7 @@ const selectedGenres = ref(
 const selectedStyles = ref(
     props.filters.styles ? (Array.isArray(props.filters.styles) ? props.filters.styles : [props.filters.styles]) : []
 );
-const sort = ref(props.filters.sort ?? 'date_added');
+const sort = ref(props.filters.sort ?? 'value');
 const direction = ref(props.filters.direction ?? 'desc');
 const showFilters = ref(false);
 const suggestions = ref([]);
@@ -107,7 +107,7 @@ function clearFilters() {
     search.value = '';
     selectedGenres.value = [];
     selectedStyles.value = [];
-    sort.value = 'date_added';
+    sort.value = 'value';
     direction.value = 'desc';
 }
 

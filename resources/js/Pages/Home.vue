@@ -16,7 +16,7 @@ defineProps({
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 flex flex-col justify-center">
                 <h1 class="text-4xl sm:text-5xl font-bold text-white text-center mb-3">What’s the vibe?</h1>
                 <p class="text-gray-500 text-center mb-12">
-                    Pick a mood and we’ll suggest something from your collection
+                    Pick a mood and we’ll choose a record from your collection
                 </p>
 
                 <div v-if="!username" class="text-center py-16">
