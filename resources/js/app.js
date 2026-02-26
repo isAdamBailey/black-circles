@@ -4,7 +4,7 @@ import './bootstrap';
 import { createInertiaApp, router } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';
-import VueGtag from 'vue-gtag';
+import { createGtag } from 'vue-gtag';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
@@ -19,7 +19,7 @@ createInertiaApp({
             .use(ZiggyVue);
 
         if (googleTagId) {
-            app.use(VueGtag, { config: { id: googleTagId } });
+            app.use(createGtag({ tagId: googleTagId }));
         }
 
         const instance = app.mount(el);
