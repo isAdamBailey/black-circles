@@ -23,8 +23,16 @@ class SyncDiscogsCollection extends Command
         }
 
         $this->info("Syncing collection for: {$username}");
+
+        $discogs->setProgressCallback(fn (string $message) => $this->line($message));
+
         $result = $discogs->syncCollection($username);
+
         $this->info("Synced {$result['synced']} items.");
+
+        if ($result['synced'] === 0) {
+            $this->warn('No items synced. Check: Discogs username is correct, collection has items, DISCOGS_TOKEN improves rate limits.');
+        }
 
         return 0;
     }

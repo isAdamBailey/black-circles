@@ -16,6 +16,13 @@ class DiscogsService
 
     protected string $userAgent = 'BlackCirclesApp/1.0 +https://github.com/isAdamBailey/black-circles';
 
+    protected ?\Closure $progressCallback = null;
+
+    public function setProgressCallback(?\Closure $callback): void
+    {
+        $this->progressCallback = $callback;
+    }
+
     protected function headers(): array
     {
         $token = config('services.discogs.token');
@@ -117,10 +124,17 @@ class DiscogsService
         do {
             $data = $this->getCollection($username, $page, 100);
             if (! $data || empty($data['releases'])) {
+                if ($page === 1 && (! $data || (isset($data['pagination']) && empty($data['releases'])))) {
+                    $this->progressCallback && ($this->progressCallback)('No data from Discogs API (page 1). Check username and rate limits.');
+                }
                 break;
             }
 
             $totalPages = $data['pagination']['pages'] ?? 1;
+
+            if ($this->progressCallback) {
+                ($this->progressCallback)("Page {$page}/{$totalPages} — ".count($data['releases']).' releases');
+            }
 
             foreach ($data['releases'] as $item) {
                 $basicInfo = $item['basic_information'] ?? [];
