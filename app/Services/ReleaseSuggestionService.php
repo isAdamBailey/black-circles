@@ -32,6 +32,30 @@ class ReleaseSuggestionService
             ->get();
     }
 
+    public function fetchReleasesMatchingArtistOrTitle(string $prompt, int $limit): Collection
+    {
+        $terms = array_filter(
+            array_unique(preg_split('/\s+/', preg_replace('/[^\w\s]/', ' ', $prompt))),
+            fn ($t) => strlen($t) >= 3
+        );
+        if (empty($terms)) {
+            return collect();
+        }
+
+        return DiscogsRelease::query()
+            ->whereHas('collectionItem')
+            ->where(function ($q) use ($terms) {
+                foreach ($terms as $term) {
+                    $q->orWhere('artist', 'like', '%'.$term.'%')
+                        ->orWhere('title', 'like', '%'.$term.'%');
+                }
+            })
+            ->with(['genres', 'styles'])
+            ->inRandomOrder()
+            ->limit($limit)
+            ->get();
+    }
+
     public function randomReleases(int $limit): Collection
     {
         return DiscogsRelease::query()

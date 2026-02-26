@@ -34,8 +34,12 @@ class VibeController extends Controller
         $allStyles = Style::orderedNames();
         $labels = array_values(array_unique(array_merge($allGenres, $allStyles)));
 
+        $directMatches = $this->releaseSuggestion->fetchReleasesMatchingArtistOrTitle($prompt, 5);
+
         $pool = collect();
-        if (empty($labels)) {
+        if ($directMatches->isNotEmpty()) {
+            $pool = $directMatches;
+        } elseif (empty($labels)) {
             $pool = $this->releaseSuggestion->randomReleases(5);
         } else {
             $scored = $this->huggingFace->classifyText($prompt, $labels);
