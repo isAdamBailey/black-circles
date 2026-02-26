@@ -45,6 +45,7 @@ class DiscogsService
                     Log::warning('Discogs rate limited (429), waiting before retry', array_merge($logContext, ['wait_seconds' => $wait, 'attempt' => $attempt + 1]));
                     sleep($wait);
                     $attempt++;
+
                     continue;
                 }
 
