@@ -46,8 +46,19 @@ class ReleaseSuggestionService
             ->whereHas('collectionItem')
             ->where(function ($q) use ($terms) {
                 foreach ($terms as $term) {
-                    $q->orWhere('artist', 'like', '%'.$term.'%')
-                        ->orWhere('title', 'like', '%'.$term.'%');
+                    $q->orWhere(function ($sub) use ($term) {
+                        $sub->where(function ($col) use ($term) {
+                            $col->where('artist', 'like', $term)
+                                ->orWhere('artist', 'like', $term.' %')
+                                ->orWhere('artist', 'like', '% '.$term)
+                                ->orWhere('artist', 'like', '% '.$term.' %');
+                        })->orWhere(function ($col) use ($term) {
+                            $col->where('title', 'like', $term)
+                                ->orWhere('title', 'like', $term.' %')
+                                ->orWhere('title', 'like', '% '.$term)
+                                ->orWhere('title', 'like', '% '.$term.' %');
+                        });
+                    });
                 }
             })
             ->with(['genres', 'styles'])

@@ -37,10 +37,10 @@ class VibeController extends Controller
         $directMatches = $this->releaseSuggestion->fetchReleasesMatchingArtistOrTitle($prompt, 5);
 
         $pool = collect();
-        if ($directMatches->isNotEmpty()) {
+        if ($directMatches->count() >= 5) {
             $pool = $directMatches;
         } elseif (empty($labels)) {
-            $pool = $this->releaseSuggestion->randomReleases(5);
+            $pool = $directMatches->isNotEmpty() ? $directMatches : $this->releaseSuggestion->randomReleases(5);
         } else {
             $scored = $this->huggingFace->classifyText($prompt, $labels);
             $partitioned = $this->huggingFace->partitionLabels($scored, $allGenres, $allStyles);
@@ -48,10 +48,12 @@ class VibeController extends Controller
             $styles = $partitioned['styles'];
 
             if (! empty($genres) || ! empty($styles)) {
-                $pool = $this->releaseSuggestion->fetchMatchingReleases($genres, $styles, [], 5);
+                $aiPool = $this->releaseSuggestion->fetchMatchingReleases($genres, $styles, [], 5);
+                $aiPool = $aiPool->whereNotIn('id', $directMatches->pluck('id')->toArray());
+                $pool = $directMatches->merge($aiPool)->unique('id')->take(5)->values();
             }
             if ($pool->isEmpty()) {
-                $pool = $this->releaseSuggestion->randomReleases(5);
+                $pool = $directMatches->isNotEmpty() ? $directMatches : $this->releaseSuggestion->randomReleases(5);
             }
         }
 
