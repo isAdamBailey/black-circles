@@ -69,7 +69,10 @@ class CollectionController extends Controller
 
         return Inertia::render('Collection/Index', [
             'releases' => Inertia::scroll(fn () => $query->paginate(48)->withQueryString()),
-            'filters' => $request->only(['search', 'genres', 'styles', 'sort', 'direction']),
+            'filters' => array_merge(
+                $request->only(['search', 'genres', 'styles']),
+                ['sort' => $sort, 'direction' => $direction]
+            ),
             'allGenres' => $allGenres,
             'allStyles' => $allStyles,
             'username' => Setting::discogsUsername(),
