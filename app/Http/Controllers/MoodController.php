@@ -42,11 +42,12 @@ class MoodController extends Controller
             'genres' => ['Pop', 'Reggae', 'Funk / Soul'],
             'styles' => ['Disco', 'Funk', 'Pop Rock', 'Bubblegum'],
         ],
-        'romantic' => [
-            'label' => 'Romantic',
-            'emoji' => '💕',
-            'genres' => ['Jazz', 'Funk / Soul', 'Classical'],
-            'styles' => ['Soul', 'R&B', 'Bossa Nova', 'Vocal', 'Smooth Jazz'],
+        'fast' => [
+            'label' => 'Fast',
+            'emoji' => '🔥',
+            'genres' => [],
+            'styles' => ['Speed Metal', 'Thrash Metal', 'Power Metal', 'Death Metal', 'Black Metal', 'Heavy Metal', 'Grindcore', 'Metalcore', 'Neoclassical', 'US Power Metal'],
+            'exclude_styles' => ['Doom Metal', 'Stoner Rock'],
         ],
         'focus' => [
             'label' => 'Focus',
@@ -58,7 +59,7 @@ class MoodController extends Controller
             'label' => 'Party',
             'emoji' => '🎉',
             'genres' => ['Electronic', 'Hip-Hop', 'Funk / Soul'],
-            'styles' => ['House', 'Techno', 'Disco', 'Funk', 'Dance'],
+            'styles' => ['Punk', 'House', 'Techno', 'Disco', 'Funk', 'Dance'],
         ],
     ];
 
@@ -93,16 +94,6 @@ class MoodController extends Controller
                 ->inRandomOrder()
                 ->limit(5)
                 ->get();
-        } elseif ($pool->count() < 5) {
-            $excludeIds = $pool->pluck('id');
-            $extra = DiscogsRelease::query()
-                ->whereHas('collectionItem')
-                ->whereNotIn('id', $excludeIds)
-                ->with(['genres', 'styles'])
-                ->inRandomOrder()
-                ->limit(5 - $pool->count())
-                ->get();
-            $pool = $pool->merge($extra);
         }
 
         if ($pool->isEmpty()) {
@@ -128,8 +119,9 @@ class MoodController extends Controller
     {
         $genres = $config['genres'] ?? [];
         $styles = $config['styles'] ?? [];
+        $excludeStyles = $config['exclude_styles'] ?? [];
 
-        return DiscogsRelease::query()
+        $query = DiscogsRelease::query()
             ->whereHas('collectionItem')
             ->where(function ($q) use ($genres, $styles) {
                 if (! empty($genres)) {
@@ -138,7 +130,13 @@ class MoodController extends Controller
                 if (! empty($styles)) {
                     $q->orWhereHas('styles', fn ($s) => $s->whereIn('name', $styles));
                 }
-            })
+            });
+
+        if (! empty($excludeStyles)) {
+            $query->whereDoesntHave('styles', fn ($s) => $s->whereIn('name', $excludeStyles));
+        }
+
+        return $query
             ->with(['genres', 'styles'])
             ->inRandomOrder()
             ->limit($limit)
