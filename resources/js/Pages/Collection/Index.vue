@@ -5,12 +5,12 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import axios from 'axios';
 
 const props = defineProps({
-    releases: Object,
-    filters: Object,
-    allGenres: Array,
-    allStyles: Array,
-    username: String,
-    lastSynced: String,
+    releases: { type: Object, default: () => ({}) },
+    filters: { type: Object, default: () => ({}) },
+    allGenres: { type: Array, default: () => [] },
+    allStyles: { type: Array, default: () => [] },
+    username: { type: String, default: '' },
+    lastSynced: { type: String, default: '' },
 });
 
 const search = ref(props.filters.search ?? '');
@@ -158,7 +158,7 @@ const releasesData = computed(() => props.releases?.data ?? []);
                             autocomplete="off"
                             class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-gray-500 text-sm"
                         />
-                        <button v-if="search" @click="search = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">✕</button>
+                        <button v-if="search" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300" @click="search = ''">✕</button>
                         <div
                             v-if="showSuggestions && (suggestions.length || fetchingSuggestions)"
                             class="absolute top-full left-0 right-0 mt-1 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 max-h-64 overflow-auto"
@@ -168,8 +168,8 @@ const releasesData = computed(() => props.releases?.data ?? []);
                                 v-for="r in suggestions"
                                 :key="r.id"
                                 type="button"
-                                @click="selectSuggestion(r)"
                                 class="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-800 transition-colors"
+                                @click="selectSuggestion(r)"
                             >
                                 <img v-if="r.thumb" :src="r.thumb" alt="" class="w-10 h-10 rounded object-cover shrink-0" />
                                 <div v-else class="w-10 h-10 rounded bg-gray-700 shrink-0 flex items-center justify-center text-gray-500 text-lg">⚫</div>
@@ -192,16 +192,16 @@ const releasesData = computed(() => props.releases?.data ?? []);
                         </p>
                     </div>
                     <button
-                        @click="direction = direction === 'asc' ? 'desc' : 'asc'"
                         class="px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-gray-300 hover:text-white text-sm transition-colors"
                         :title="direction === 'asc' ? 'Ascending' : 'Descending'"
+                        @click="direction = direction === 'asc' ? 'desc' : 'asc'"
                     >
                         {{ direction === 'asc' ? '↑' : '↓' }}
                     </button>
                     <button
-                        @click="showFilters = !showFilters"
                         class="px-4 py-2.5 bg-gray-900 border rounded-lg text-sm transition-colors"
                         :class="(selectedGenres.length || selectedStyles.length) ? 'border-white text-white' : 'border-gray-700 text-gray-400 hover:text-white'"
+                        @click="showFilters = !showFilters"
                     >
                         Filter {{ selectedGenres.length + selectedStyles.length > 0 ? `(${selectedGenres.length + selectedStyles.length})` : '' }}
                     </button>
@@ -211,7 +211,7 @@ const releasesData = computed(() => props.releases?.data ?? []);
                 <div v-if="showFilters" class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Filters</h3>
-                        <button @click="clearFilters" class="text-xs text-gray-500 hover:text-gray-300 transition-colors">Clear all</button>
+                        <button class="text-xs text-gray-500 hover:text-gray-300 transition-colors" @click="clearFilters">Clear all</button>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div v-if="allGenres.length">
@@ -220,11 +220,11 @@ const releasesData = computed(() => props.releases?.data ?? []);
                                 <button
                                     v-for="genre in allGenres"
                                     :key="genre"
-                                    @click="toggleGenre(genre)"
                                     class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
                                     :class="selectedGenres.includes(genre)
                                         ? 'bg-white text-black'
                                         : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'"
+                                    @click="toggleGenre(genre)"
                                 >
                                     {{ genre }}
                                 </button>
@@ -236,11 +236,11 @@ const releasesData = computed(() => props.releases?.data ?? []);
                                 <button
                                     v-for="style in allStyles"
                                     :key="style"
-                                    @click="toggleStyle(style)"
                                     class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
                                     :class="selectedStyles.includes(style)
                                         ? 'bg-white text-black'
                                         : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'"
+                                    @click="toggleStyle(style)"
                                 >
                                     {{ style }}
                                 </button>
@@ -254,7 +254,7 @@ const releasesData = computed(() => props.releases?.data ?? []);
                     <div class="text-5xl mb-4">🔍</div>
                     <h2 class="text-lg font-semibold text-gray-300 mb-2">No records found</h2>
                     <p class="text-gray-500 text-sm">Try adjusting your search or filters.</p>
-                    <button @click="clearFilters" class="mt-4 text-sm text-gray-400 hover:text-white underline">Clear filters</button>
+                    <button class="mt-4 text-sm text-gray-400 hover:text-white underline" @click="clearFilters">Clear filters</button>
                 </div>
 
                 <!-- Album Grid -->

@@ -17,6 +17,9 @@ export default [
                 route: 'readonly',
             },
         },
+        rules: {
+            'vue/multi-word-component-names': 'off',
+        },
     },
     eslintConfigPrettier,
 ];

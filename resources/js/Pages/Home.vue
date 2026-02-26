@@ -3,8 +3,8 @@ import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 defineProps({
-    moods: Array,
-    username: String,
+    moods: { type: Array, default: () => [] },
+    username: { type: String, default: '' },
 });
 </script>
 

@@ -4,7 +4,7 @@ import { Link, Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 const props = defineProps({
-    release: Object,
+    release: { type: Object, default: () => ({}) },
 });
 
 const imageIndex = ref(0);
@@ -87,17 +87,17 @@ const formats = computed(() => {
                         <template v-if="imageList.length > 1">
                             <button
                                 type="button"
-                                @click="prevImage"
                                 class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                 aria-label="Previous image"
+                                @click="prevImage"
                             >
                                 ‹
                             </button>
                             <button
                                 type="button"
-                                @click="nextImage"
                                 class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                 aria-label="Next image"
+                                @click="nextImage"
                             >
                                 ›
                             </button>
@@ -106,10 +106,10 @@ const formats = computed(() => {
                                     v-for="(_, i) in imageList"
                                     :key="i"
                                     type="button"
-                                    @click="imageIndex = i"
                                     class="w-2 h-2 rounded-full transition-colors"
                                     :class="i === imageIndex ? 'bg-white' : 'bg-white/40 hover:bg-white/60'"
                                     :aria-label="`Image ${i + 1}`"
+                                    @click="imageIndex = i"
                                 />
                             </div>
                         </template>

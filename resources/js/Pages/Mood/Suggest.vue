@@ -3,9 +3,9 @@ import { Link, Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 const props = defineProps({
-    mood: Object,
-    primary: Object,
-    backups: Array,
+    mood: { type: Object, default: () => ({}) },
+    primary: { type: Object, default: () => ({}) },
+    backups: { type: Array, default: () => [] },
 });
 
 function tryAgain() {
@@ -54,9 +54,9 @@ function tryAgain() {
                         We picked this for you. Tap to view details, or try again for something different.
                     </p>
                     <button
-                        @click="tryAgain"
                         type="button"
                         class="self-start px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-white text-sm transition-colors"
+                        @click="tryAgain"
                     >
                         Try again
                     </button>
