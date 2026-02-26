@@ -26,9 +26,11 @@ createInertiaApp({
 
         if (googleTagId && typeof window.gtag === 'function') {
             router.on('navigate', (event) => {
+                const url = event.detail.page.url ?? window.location.href;
+                const pagePath = url.startsWith('/') ? url : new URL(url, window.location.origin).pathname;
                 window.gtag('event', 'page_view', {
-                    page_location: event.detail.page.url,
-                    page_path: new URL(event.detail.page.url).pathname,
+                    page_location: url.startsWith('/') ? `${window.location.origin}${url}` : url,
+                    page_path: pagePath,
                 });
             });
         }
