@@ -26,19 +26,11 @@ const flash = computed(() => page.props.flash ?? {});
                             >
                                 Collection
                             </Link>
-                            <Link
-                                :href="route('settings.index')"
-                                class="text-sm font-medium transition-colors"
-                                :class="route().current('settings.*') ? 'text-white' : 'text-gray-400 hover:text-white'"
-                            >
-                                Settings
-                            </Link>
                         </div>
                     </div>
                     <!-- Mobile nav -->
                     <div class="sm:hidden flex gap-4">
                         <Link :href="route('collection.index')" class="text-gray-400 hover:text-white text-sm">Collection</Link>
-                        <Link :href="route('settings.index')" class="text-gray-400 hover:text-white text-sm">Settings</Link>
                     </div>
                 </div>
             </div>

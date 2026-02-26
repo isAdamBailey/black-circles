@@ -9,14 +9,16 @@ use Illuminate\Console\Command;
 class SyncDiscogsCollection extends Command
 {
     protected $signature = 'discogs:sync {username? : Discogs username to sync}';
+
     protected $description = 'Sync Discogs collection for a given username';
 
     public function handle(DiscogsService $discogs): int
     {
-        $username = $this->argument('username') ?? Setting::get('discogs_username');
+        $username = $this->argument('username') ?? Setting::discogsUsername();
 
-        if (!$username) {
-            $this->error('No username provided. Set one in Settings or pass as argument.');
+        if ($username === '') {
+            $this->error('No username. Set DISCOGS_USERNAME in .env or pass as argument: sail artisan discogs:sync username');
+
             return 1;
         }
 

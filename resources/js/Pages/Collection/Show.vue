@@ -1,11 +1,33 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Link, Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 const props = defineProps({
     release: Object,
 });
+
+const imageIndex = ref(0);
+
+const imageList = computed(() => {
+    if (props.release.images && Array.isArray(props.release.images) && props.release.images.length > 0) {
+        return props.release.images.map(img => img.uri || img).filter(Boolean);
+    }
+    if (props.release.cover_image) return [props.release.cover_image];
+    return [];
+});
+
+const currentImage = computed(() => imageList.value[imageIndex.value] || null);
+
+function prevImage() {
+    if (imageList.value.length <= 1) return;
+    imageIndex.value = (imageIndex.value - 1 + imageList.value.length) % imageList.value.length;
+}
+
+function nextImage() {
+    if (imageList.value.length <= 1) return;
+    imageIndex.value = (imageIndex.value + 1) % imageList.value.length;
+}
 
 function getYouTubeId(url) {
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/);
@@ -52,34 +74,50 @@ const formats = computed(() => {
 
             <!-- Main layout -->
             <div class="grid grid-cols-1 md:grid-cols-5 gap-8 mb-10">
-                <!-- Cover Art -->
+                <!-- Cover Art / Image slider -->
                 <div class="md:col-span-2">
-                    <div class="aspect-square bg-gray-800 rounded-xl overflow-hidden shadow-2xl">
+                    <div class="aspect-square bg-gray-800 rounded-xl overflow-hidden shadow-2xl relative group">
                         <img
-                            v-if="release.cover_image"
-                            :src="release.cover_image"
+                            v-if="currentImage"
+                            :src="currentImage"
                             :alt="release.title"
                             class="w-full h-full object-cover"
                         />
                         <div v-else class="w-full h-full flex items-center justify-center text-8xl text-gray-600">⚫</div>
+                        <template v-if="imageList.length > 1">
+                            <button
+                                type="button"
+                                @click="prevImage"
+                                class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                aria-label="Previous image"
+                            >
+                                ‹
+                            </button>
+                            <button
+                                type="button"
+                                @click="nextImage"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                aria-label="Next image"
+                            >
+                                ›
+                            </button>
+                            <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                                <button
+                                    v-for="(_, i) in imageList"
+                                    :key="i"
+                                    type="button"
+                                    @click="imageIndex = i"
+                                    class="w-2 h-2 rounded-full transition-colors"
+                                    :class="i === imageIndex ? 'bg-white' : 'bg-white/40 hover:bg-white/60'"
+                                    :aria-label="`Image ${i + 1}`"
+                                />
+                            </div>
+                        </template>
                     </div>
                     <!-- Price info -->
-                    <div v-if="release.median_price" class="mt-4 bg-gray-900 rounded-xl p-4 border border-gray-800">
-                        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Market Value</h3>
-                        <div class="grid grid-cols-3 gap-2 text-center">
-                            <div v-if="release.lowest_price">
-                                <div class="text-sm font-bold text-green-400">${{ Number(release.lowest_price).toFixed(2) }}</div>
-                                <div class="text-xs text-gray-500 mt-0.5">Low</div>
-                            </div>
-                            <div v-if="release.median_price">
-                                <div class="text-base font-bold text-white">${{ Number(release.median_price).toFixed(2) }}</div>
-                                <div class="text-xs text-gray-500 mt-0.5">Median</div>
-                            </div>
-                            <div v-if="release.highest_price">
-                                <div class="text-sm font-bold text-blue-400">${{ Number(release.highest_price).toFixed(2) }}</div>
-                                <div class="text-xs text-gray-500 mt-0.5">High</div>
-                            </div>
-                        </div>
+                    <div v-if="release.lowest_price != null" class="mt-4 bg-gray-900 rounded-xl p-4 border border-gray-800">
+                        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Lowest for sale</h3>
+                        <div class="text-xl font-bold text-green-400">${{ Number(release.lowest_price).toFixed(2) }}</div>
                     </div>
                 </div>
 
@@ -98,7 +136,7 @@ const formats = computed(() => {
                             <dt class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Label</dt>
                             <dd class="text-white">{{ release.label }}</dd>
                         </div>
-                        <div v-if="release.year">
+                        <div v-if="release.year && release.year !== 0">
                             <dt class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Year</dt>
                             <dd class="text-white">{{ release.year }}</dd>
                         </div>

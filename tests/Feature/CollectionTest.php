@@ -2,7 +2,6 @@
 
 use App\Models\DiscogsCollectionItem;
 use App\Models\DiscogsRelease;
-use App\Models\Setting;
 
 it('renders the collection index page', function () {
     $this->get(route('collection.index'))
@@ -33,8 +32,10 @@ it('renders a release detail page', function () {
 });
 
 it('filters releases by genre', function () {
-    DiscogsRelease::factory()->withGenres(['Rock'])->create();
-    DiscogsRelease::factory()->withGenres(['Electronic'])->create();
+    $rock = DiscogsRelease::factory()->withGenres(['Rock'])->create();
+    $electronic = DiscogsRelease::factory()->withGenres(['Electronic'])->create();
+    DiscogsCollectionItem::factory()->for($rock, 'release')->create();
+    DiscogsCollectionItem::factory()->for($electronic, 'release')->create();
 
     $this->get(route('collection.index', ['genres' => 'Rock']))
         ->assertStatus(200)
@@ -45,8 +46,10 @@ it('filters releases by genre', function () {
 });
 
 it('searches releases by artist name', function () {
-    DiscogsRelease::factory()->create(['title' => 'Dark Side of the Moon', 'artist' => 'Pink Floyd']);
-    DiscogsRelease::factory()->create(['title' => 'Rumours', 'artist' => 'Fleetwood Mac']);
+    $pf = DiscogsRelease::factory()->create(['title' => 'Dark Side of the Moon', 'artist' => 'Pink Floyd']);
+    $fm = DiscogsRelease::factory()->create(['title' => 'Rumours', 'artist' => 'Fleetwood Mac']);
+    DiscogsCollectionItem::factory()->for($pf, 'release')->create();
+    DiscogsCollectionItem::factory()->for($fm, 'release')->create();
 
     $this->get(route('collection.index', ['search' => 'Pink Floyd']))
         ->assertStatus(200)
@@ -56,20 +59,50 @@ it('searches releases by artist name', function () {
         );
 });
 
-it('renders the settings page', function () {
-    $this->get(route('settings.index'))
-        ->assertStatus(200)
-        ->assertInertia(fn ($page) => $page->component('Settings/Index'));
+it('sorts collection by value using lowest_price', function () {
+    $cheap = DiscogsRelease::factory()->create(['lowest_price' => 5.00]);
+    $expensive = DiscogsRelease::factory()->create(['lowest_price' => 50.00]);
+    $noPrice = DiscogsRelease::factory()->create(['lowest_price' => null]);
+    DiscogsCollectionItem::factory()->for($cheap, 'release')->create();
+    DiscogsCollectionItem::factory()->for($expensive, 'release')->create();
+    DiscogsCollectionItem::factory()->for($noPrice, 'release')->create();
+
+    $response = $this->get(route('collection.index', ['sort' => 'value', 'direction' => 'asc']));
+    $response->assertStatus(200)
+        ->assertInertia(fn ($page) => $page
+            ->component('Collection/Index')
+            ->has('releases.data', 3)
+        );
+
+    $data = $response->inertiaProps('releases.data');
+    $orderedByPrice = collect($data)->map(fn ($r) => $r['lowest_price'])->all();
+    expect((float) $orderedByPrice[0])->toBe(5.0)
+        ->and((float) $orderedByPrice[1])->toBe(50.0)
+        ->and($orderedByPrice[2])->toBeNull();
 });
 
-it('saves the discogs username in settings', function () {
-    $this->post(route('settings.update'), ['discogs_username' => 'testuser'])
-        ->assertRedirect();
+it('returns search results for lookahead', function () {
+    config(['scout.driver' => 'database']);
+    $release = DiscogsRelease::factory()->create(['title' => 'Dark Side', 'artist' => 'Pink Floyd']);
+    DiscogsCollectionItem::factory()->for($release, 'release')->create();
 
-    expect(Setting::get('discogs_username'))->toBe('testuser');
+    $response = $this->getJson(route('collection.search', ['q' => 'Pink']));
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.0.title', 'Dark Side')
+        ->assertJsonPath('data.0.artist', 'Pink Floyd');
 });
 
-it('requires a discogs username when saving settings', function () {
-    $this->post(route('settings.update'), ['discogs_username' => ''])
-        ->assertSessionHasErrors('discogs_username');
+it('provides releases as scrollable paginated data', function () {
+    DiscogsRelease::factory()->count(3)->create()->each(function ($r) {
+        DiscogsCollectionItem::factory()->for($r, 'release')->create();
+    });
+
+    $response = $this->get(route('collection.index'));
+    $response->assertStatus(200)
+        ->assertInertia(fn ($page) => $page
+            ->component('Collection/Index')
+            ->has('releases.data', 3)
+            ->has('releases.links')
+        );
 });

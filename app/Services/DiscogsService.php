@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 class DiscogsService
 {
     protected string $baseUrl = 'https://api.discogs.com';
+
     protected string $userAgent = 'BlackCirclesApp/1.0 +https://github.com/isAdamBailey/black-circles';
 
     protected function headers(): array
@@ -22,6 +23,7 @@ class DiscogsService
         if ($token) {
             $headers['Authorization'] = "Discogs token={$token}";
         }
+
         return $headers;
     }
 
@@ -53,6 +55,7 @@ class DiscogsService
         } catch (\Exception $e) {
             Log::error('Discogs API exception', ['message' => $e->getMessage()]);
         }
+
         return null;
     }
 
@@ -68,6 +71,7 @@ class DiscogsService
         } catch (\Exception $e) {
             Log::error('Discogs release fetch failed', ['id' => $releaseId, 'message' => $e->getMessage()]);
         }
+
         return null;
     }
 
@@ -91,27 +95,7 @@ class DiscogsService
         } catch (\Exception $e) {
             Log::error('Discogs marketplace stats fetch failed', ['id' => $releaseId, 'message' => $e->getMessage()]);
         }
-        return null;
-    }
 
-    /**
-     * Fetch suggested prices per condition for a release. Requires an auth token.
-     *
-     * Response keys are condition names like "Very Good Plus (VG+)", "Near Mint (NM or M-)", etc.
-     * Each value is: {"currency": "USD", "value": 12.00}
-     */
-    public function getPriceSuggestions(int $releaseId): ?array
-    {
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->get("{$this->baseUrl}/marketplace/price_suggestions/{$releaseId}");
-
-            if ($response->successful()) {
-                return $response->json();
-            }
-        } catch (\Exception $e) {
-            Log::error('Discogs price suggestion fetch failed', ['id' => $releaseId, 'message' => $e->getMessage()]);
-        }
         return null;
     }
 
@@ -123,7 +107,7 @@ class DiscogsService
 
         do {
             $data = $this->getCollection($username, $page, 100);
-            if (!$data || empty($data['releases'])) {
+            if (! $data || empty($data['releases'])) {
                 break;
             }
 
@@ -133,13 +117,17 @@ class DiscogsService
                 $basicInfo = $item['basic_information'] ?? [];
                 $releaseId = $basicInfo['id'] ?? null;
 
-                if (!$releaseId) continue;
+                if (! $releaseId) {
+                    continue;
+                }
 
                 // Use ANV (Artist Name Variation) when available — it provides the
                 // clean display name without Discogs disambiguation suffixes like "(2)".
                 $artistName = collect($basicInfo['artists'] ?? [])
-                    ->map(fn($a) => $this->artistName($a))
+                    ->map(fn ($a) => $this->artistName($a))
                     ->implode(', ');
+
+                $year = isset($basicInfo['year']) && (int) $basicInfo['year'] > 0 ? (int) $basicInfo['year'] : null;
 
                 DiscogsRelease::updateOrCreate(
                     ['discogs_id' => $releaseId],
@@ -148,7 +136,7 @@ class DiscogsService
                         'artist' => $artistName,
                         'label' => collect($basicInfo['labels'] ?? [])->first()['name'] ?? null,
                         'catalog_number' => collect($basicInfo['labels'] ?? [])->first()['catno'] ?? null,
-                        'year' => $basicInfo['year'] ?? null,
+                        'year' => $year,
                         'cover_image' => $basicInfo['cover_image'] ?? null,
                         'thumb' => $basicInfo['thumb'] ?? null,
                         'formats' => $basicInfo['formats'] ?? null,
@@ -161,11 +149,11 @@ class DiscogsService
                 $release = DiscogsRelease::where('discogs_id', $releaseId)->first();
 
                 $genreIds = collect($basicInfo['genres'] ?? [])
-                    ->map(fn($name) => Genre::firstOrCreate(['name' => $name])->id);
+                    ->map(fn ($name) => Genre::firstOrCreate(['name' => $name])->id);
                 $release->genres()->sync($genreIds);
 
                 $styleIds = collect($basicInfo['styles'] ?? [])
-                    ->map(fn($name) => Style::firstOrCreate(['name' => $name])->id);
+                    ->map(fn ($name) => Style::firstOrCreate(['name' => $name])->id);
                 $release->styles()->sync($styleIds);
 
                 // The collection API returns folder_id (integer) and notes as an array
@@ -176,21 +164,25 @@ class DiscogsService
                         'discogs_release_id' => $releaseId,
                         'folder_id' => $item['folder_id'] ?? null,
                         'rating' => $item['rating'] ?? null,
-                        'notes' => $item['notes'] ?: null,
+                        'notes' => $item['notes'] ?? null,
                         'date_added' => isset($item['date_added']) ? \Carbon\Carbon::parse($item['date_added']) : null,
                     ]
                 );
 
+                $stats = $this->getMarketplaceStats($releaseId);
+                $lowest = ($stats && isset($stats['lowest_price']['value'])) ? $stats['lowest_price']['value'] : null;
+                $release->update(['lowest_price' => $lowest]);
+
                 $synced++;
+                usleep(1_000_000);
             }
 
             $page++;
             if ($page <= $totalPages) {
-                usleep(500000); // 0.5s delay between pages to respect rate limits
+                usleep(500000);
             }
         } while ($page <= $totalPages);
 
-        Setting::set('discogs_username', $username);
         Setting::set('collection_last_synced', now()->toISOString());
 
         return ['synced' => $synced, 'username' => $username];
@@ -198,72 +190,39 @@ class DiscogsService
 
     public function enrichRelease(DiscogsRelease $release): DiscogsRelease
     {
-        // Only re-fetch if data is stale (older than 7 days) or missing
-        if ($release->release_data_cached_at && $release->release_data_cached_at->diffInDays(now()) < 7) {
-            return $release;
-        }
+        $data = null;
+        $cacheFresh = $release->release_data_cached_at && $release->release_data_cached_at->diffInDays(now()) < 7;
 
-        $data = $this->getRelease($release->discogs_id);
-        if ($data) {
-            $updateData = [
-                // Tracklist: each track has position (string), type_ (track|heading|subtrack),
-                // title (string), duration (string "M:SS" — already formatted, not seconds).
-                'tracklist' => $data['tracklist'] ?? null,
-
-                // Videos: each item has uri, title, description, duration (int seconds), embed (bool).
-                // The embed flag is checked in the frontend before rendering iframes.
-                'videos' => $data['videos'] ?? null,
-
-                // Notes on the full release endpoint is a HTML string (unlike collection notes
-                // which are an array). Strip tags to get plain text.
-                'notes' => isset($data['notes']) ? strip_tags($data['notes']) : null,
-
-                // Use the API-provided URI which includes the proper title slug,
-                // e.g. "/Sex-Pistols-Never-Mind.../release/249504"
-                'discogs_uri' => $data['uri'] ?? $release->discogs_uri,
-
-                'release_data_cached_at' => now(),
-            ];
-
-            // Update cover image to the primary high-resolution version from the full release.
-            // images[] is ordered with the primary image first (type = "primary").
-            $primaryImage = collect($data['images'] ?? [])->firstWhere('type', 'primary')
-                ?? collect($data['images'] ?? [])->first();
-            if ($primaryImage) {
-                $updateData['cover_image'] = $primaryImage['uri'] ?? $release->cover_image;
-                $updateData['thumb'] = $primaryImage['uri150'] ?? $release->thumb;
+        if (! $cacheFresh) {
+            $data = $this->getRelease($release->discogs_id);
+            if ($data) {
+                $year = isset($data['year']) && $data['year'] > 0 ? (int) $data['year'] : null;
+                $updateData = [
+                    'tracklist' => $data['tracklist'] ?? null,
+                    'videos' => $data['videos'] ?? null,
+                    'notes' => isset($data['notes']) ? strip_tags($data['notes']) : null,
+                    'discogs_uri' => $data['uri'] ?? $release->discogs_uri,
+                    'year' => $year,
+                    'release_data_cached_at' => now(),
+                ];
+                $images = $data['images'] ?? null;
+                $updateData['images'] = $images;
+                $primaryImage = collect($images ?? [])->firstWhere('type', 'primary')
+                    ?? collect($images ?? [])->first();
+                if ($primaryImage) {
+                    $updateData['cover_image'] = $primaryImage['uri'] ?? $release->cover_image;
+                    $updateData['thumb'] = $primaryImage['uri150'] ?? $release->thumb;
+                }
+                $release->update($updateData);
             }
-
-            $release->update($updateData);
         }
 
-        // Fetch marketplace stats for lowest listed price (no auth required).
         $stats = $this->getMarketplaceStats($release->discogs_id);
-        $priceUpdate = [];
-        if ($stats) {
-            $priceUpdate['lowest_price'] = $stats['lowest_price']['value'] ?? null;
+        $lowest = ($stats && isset($stats['lowest_price']['value'])) ? $stats['lowest_price']['value'] : null;
+        if ($lowest === null && $data !== null && isset($data['lowest_price']) && is_numeric($data['lowest_price'])) {
+            $lowest = (float) $data['lowest_price'];
         }
-
-        // Fetch per-condition price suggestions for median/high estimates (requires auth token).
-        // Map: median = VG+ (the standard collector reference condition),
-        //      highest = Near Mint (the premium benchmark).
-        if (config('services.discogs.token')) {
-            $suggestions = $this->getPriceSuggestions($release->discogs_id);
-            if ($suggestions) {
-                $prices = collect($suggestions)
-                    ->map(fn($p) => $p['value'] ?? null)
-                    ->filter()
-                    ->sort()
-                    ->values();
-
-                $priceUpdate['median_price'] = $prices->count() > 0 ? $prices->median() : null;
-                $priceUpdate['highest_price'] = $prices->last() ?? null;
-            }
-        }
-
-        if ($priceUpdate) {
-            $release->update($priceUpdate);
-        }
+        $release->update(['lowest_price' => $lowest]);
 
         return $release->fresh();
     }

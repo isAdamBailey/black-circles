@@ -1,7 +1,8 @@
 <script setup>
-import { ref, watch } from 'vue';
-import { router, Link, Head } from '@inertiajs/vue3';
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
+import { router, Link, Head, InfiniteScroll } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import axios from 'axios';
 
 const props = defineProps({
     releases: Object,
@@ -18,8 +19,13 @@ const selectedStyles = ref(props.filters.styles ? (Array.isArray(props.filters.s
 const sort = ref(props.filters.sort ?? 'date_added');
 const direction = ref(props.filters.direction ?? 'desc');
 const showFilters = ref(false);
+const suggestions = ref([]);
+const showSuggestions = ref(false);
+const fetchingSuggestions = ref(false);
+const searchWrapperRef = ref(null);
 
 let searchTimeout = null;
+let suggestionTimeout = null;
 
 function applyFilters() {
     router.get(route('collection.index'), {
@@ -28,15 +34,54 @@ function applyFilters() {
         styles: selectedStyles.value.length ? selectedStyles.value : undefined,
         sort: sort.value,
         direction: direction.value,
-    }, { preserveState: true, replace: true });
+    }, { preserveState: true, replace: true, reset: ['releases'] });
 }
 
 watch(search, () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(applyFilters, 400);
+
+    clearTimeout(suggestionTimeout);
+    if (search.value.trim().length >= 2) {
+        suggestionTimeout = setTimeout(fetchSuggestions, 150);
+    } else {
+        suggestions.value = [];
+        showSuggestions.value = false;
+    }
 });
 
 watch([selectedGenres, selectedStyles, sort, direction], applyFilters, { deep: true });
+
+async function fetchSuggestions() {
+    const q = search.value.trim();
+    if (q.length < 2) return;
+    fetchingSuggestions.value = true;
+    try {
+        const { data } = await axios.get(route('collection.search'), { params: { q } });
+        suggestions.value = data.data ?? [];
+        showSuggestions.value = suggestions.value.length > 0;
+    } catch {
+        suggestions.value = [];
+        showSuggestions.value = false;
+    } finally {
+        fetchingSuggestions.value = false;
+    }
+}
+
+function selectSuggestion(release) {
+    showSuggestions.value = false;
+    suggestions.value = [];
+    router.visit(route('collection.show', release.discogs_id));
+}
+
+function handleClickOutside(event) {
+    if (searchWrapperRef.value && !searchWrapperRef.value.contains(event.target)) {
+        showSuggestions.value = false;
+    }
+}
+
+onMounted(() => document.addEventListener('click', handleClickOutside));
+onUnmounted(() => document.removeEventListener('click', handleClickOutside));
 
 function toggleGenre(genre) {
     const idx = selectedGenres.value.indexOf(genre);
@@ -70,6 +115,8 @@ const sortOptions = [
     { value: 'year', label: 'Year' },
     { value: 'value', label: 'Value' },
 ];
+
+const releasesData = computed(() => props.releases?.data ?? []);
 </script>
 
 <template>
@@ -89,44 +136,61 @@ const sortOptions = [
                         <span v-if="lastSynced"> · Last synced {{ formatDate(lastSynced) }}</span>
                     </p>
                 </div>
-                <div class="flex gap-2">
-                    <Link
-                        :href="route('settings.index')"
-                        class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg transition-colors"
-                    >
-                        ⚙ Settings
-                    </Link>
-                </div>
             </div>
 
             <!-- No username state -->
             <div v-if="!username" class="text-center py-24">
                 <div class="text-6xl mb-4">⚫</div>
                 <h2 class="text-xl font-semibold text-gray-300 mb-2">No collection synced yet</h2>
-                <p class="text-gray-500 mb-6">Add your Discogs username in Settings to get started.</p>
-                <Link :href="route('settings.index')" class="px-6 py-3 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition-colors">
-                    Go to Settings
-                </Link>
+                <p class="text-gray-500 mb-6">
+                    Set <code class="text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded text-sm">DISCOGS_USERNAME</code> in .env and run <code class="text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded text-sm">sail artisan discogs:sync</code> to get started.
+                </p>
             </div>
 
             <template v-else>
                 <!-- Search + Sort bar -->
                 <div class="flex flex-col sm:flex-row gap-3 mb-6">
-                    <div class="relative flex-1">
+                    <div ref="searchWrapperRef" class="relative flex-1">
                         <input
                             v-model="search"
                             type="text"
                             placeholder="Search titles, artists, labels…"
+                            autocomplete="off"
                             class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-gray-500 text-sm"
                         />
                         <button v-if="search" @click="search = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">✕</button>
+                        <div
+                            v-if="showSuggestions && (suggestions.length || fetchingSuggestions)"
+                            class="absolute top-full left-0 right-0 mt-1 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 max-h-64 overflow-auto"
+                        >
+                            <div v-if="fetchingSuggestions" class="px-4 py-3 text-gray-500 text-sm">Searching…</div>
+                            <button
+                                v-for="r in suggestions"
+                                :key="r.id"
+                                type="button"
+                                @click="selectSuggestion(r)"
+                                class="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-800 transition-colors"
+                            >
+                                <img v-if="r.thumb" :src="r.thumb" alt="" class="w-10 h-10 rounded object-cover shrink-0" />
+                                <div v-else class="w-10 h-10 rounded bg-gray-700 shrink-0 flex items-center justify-center text-gray-500 text-lg">⚫</div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-white text-sm font-medium truncate">{{ r.title }}</div>
+                                    <div class="text-gray-400 text-xs truncate">{{ r.artist }}</div>
+                                </div>
+                            </button>
+                        </div>
                     </div>
-                    <select
-                        v-model="sort"
-                        class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-gray-500"
-                    >
-                        <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </select>
+                    <div class="flex flex-col gap-1">
+                        <select
+                            v-model="sort"
+                            class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-gray-500"
+                        >
+                            <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                        </select>
+                        <p v-if="sort === 'value'" class="text-gray-500 text-xs">
+                            Value = lowest listed. Many have no price until you open them or until copies are for sale.
+                        </p>
+                    </div>
                     <button
                         @click="direction = direction === 'asc' ? 'desc' : 'asc'"
                         class="px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-gray-300 hover:text-white text-sm transition-colors"
@@ -194,59 +258,43 @@ const sortOptions = [
                 </div>
 
                 <!-- Album Grid -->
-                <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    <Link
-                        v-for="release in releases.data"
-                        :key="release.id"
-                        :href="route('collection.show', release.discogs_id)"
-                        class="group block"
-                    >
-                        <div class="relative aspect-square bg-gray-800 rounded-lg overflow-hidden mb-2">
-                            <img
-                                v-if="release.cover_image"
-                                :src="release.cover_image"
-                                :alt="release.title"
-                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                loading="lazy"
-                            />
-                            <div v-else class="w-full h-full flex items-center justify-center text-4xl text-gray-600">⚫</div>
-                            <!-- Rating badge -->
-                            <div v-if="release.collection_item?.rating" class="absolute top-2 right-2 bg-black/70 rounded-full px-2 py-0.5 text-xs text-yellow-400">
-                                {{ '★'.repeat(release.collection_item.rating) }}
-                            </div>
-                            <!-- Hover overlay -->
-                            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-end p-2 opacity-0 group-hover:opacity-100">
-                                <span class="text-white text-xs font-medium truncate">View details</span>
-                            </div>
-                        </div>
-                        <div class="px-0.5">
-                            <p class="text-white text-xs font-semibold truncate leading-tight">{{ release.title }}</p>
-                            <p class="text-gray-400 text-xs truncate mt-0.5">{{ release.artist }}</p>
-                            <div class="flex items-center justify-between mt-1">
-                                <span class="text-gray-600 text-xs">{{ release.year }}</span>
-                                <span v-if="release.median_price" class="text-green-400 text-xs">${{ Number(release.median_price).toFixed(2) }}</span>
-                            </div>
-                        </div>
-                    </Link>
-                </div>
-
-                <!-- Pagination -->
-                <div v-if="releases.last_page > 1" class="flex justify-center gap-2 mt-10">
-                    <template v-for="link in releases.links" :key="link.label">
+                <InfiniteScroll v-else data="releases" only-next :buffer="300">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                         <Link
-                            v-if="link.url"
-                            :href="link.url"
-                            class="px-3 py-1.5 rounded text-sm transition-colors"
-                            :class="link.active ? 'bg-white text-black font-semibold' : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'"
-                            v-html="link.label"
-                        />
-                        <span
-                            v-else
-                            class="px-3 py-1.5 rounded text-sm text-gray-600 bg-gray-900"
-                            v-html="link.label"
-                        />
-                    </template>
-                </div>
+                            v-for="release in releasesData"
+                            :key="release.id"
+                            :href="route('collection.show', release.discogs_id)"
+                            class="group block"
+                        >
+                            <div class="relative aspect-square bg-gray-800 rounded-lg overflow-hidden mb-2">
+                                <img
+                                    v-if="release.cover_image"
+                                    :src="release.cover_image"
+                                    :alt="release.title"
+                                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    loading="lazy"
+                                />
+                                <div v-else class="w-full h-full flex items-center justify-center text-4xl text-gray-600">⚫</div>
+                                <div v-if="release.collection_item?.rating" class="absolute top-2 right-2 bg-black/70 rounded-full px-2 py-0.5 text-xs text-yellow-400">
+                                    {{ '★'.repeat(release.collection_item.rating) }}
+                                </div>
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-end p-2 opacity-0 group-hover:opacity-100">
+                                    <span class="text-white text-xs font-medium truncate">View details</span>
+                                </div>
+                            </div>
+                            <div class="px-0.5">
+                                <p class="text-white text-xs font-semibold truncate leading-tight">{{ release.title }}</p>
+                                <p class="text-gray-400 text-xs truncate mt-0.5">{{ release.artist }}</p>
+                                <div class="flex items-center justify-between mt-1 gap-1">
+                                    <span class="text-gray-600 text-xs shrink-0">{{ release.year && release.year !== 0 ? release.year : '—' }}</span>
+                                    <div v-if="release.lowest_price != null" class="text-right text-xs text-gray-400 shrink min-w-0">
+                                        <span class="text-green-400">${{ Number(release.lowest_price).toFixed(0) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </Link>
+                    </div>
+                </InfiniteScroll>
             </template>
         </div>
     </AppLayout>

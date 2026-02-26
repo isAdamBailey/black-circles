@@ -26,9 +26,9 @@ class DiscogsReleaseFactory extends Factory
             'tracklist' => null,
             'videos' => null,
             'lowest_price' => $this->faker->randomFloat(2, 1, 20),
-            'median_price' => $this->faker->randomFloat(2, 5, 50),
-            'highest_price' => $this->faker->randomFloat(2, 20, 200),
-            'discogs_uri' => 'https://www.discogs.com/release/' . $this->faker->numberBetween(1000000, 9999999),
+            'median_price' => null,
+            'highest_price' => null,
+            'discogs_uri' => 'https://www.discogs.com/release/'.$this->faker->numberBetween(1000000, 9999999),
             'release_data_cached_at' => null,
         ];
     }
@@ -40,7 +40,7 @@ class DiscogsReleaseFactory extends Factory
     {
         return $this->afterCreating(function (DiscogsRelease $release) use ($genreNames) {
             $ids = collect($genreNames)
-                ->map(fn($name) => Genre::firstOrCreate(['name' => $name])->id);
+                ->map(fn ($name) => Genre::firstOrCreate(['name' => $name])->id);
             $release->genres()->sync($ids);
         });
     }
@@ -52,7 +52,7 @@ class DiscogsReleaseFactory extends Factory
     {
         return $this->afterCreating(function (DiscogsRelease $release) use ($styleNames) {
             $ids = collect($styleNames)
-                ->map(fn($name) => Style::firstOrCreate(['name' => $name])->id);
+                ->map(fn ($name) => Style::firstOrCreate(['name' => $name])->id);
             $release->styles()->sync($ids);
         });
     }

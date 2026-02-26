@@ -24,6 +24,7 @@ return [
     ],
 
     'discogs' => [
+        'username' => env('DISCOGS_USERNAME', ''),
         'token' => env('DISCOGS_TOKEN', ''),
     ],
 

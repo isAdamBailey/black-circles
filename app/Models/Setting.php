@@ -17,4 +17,9 @@ class Setting extends Model
     {
         static::updateOrCreate(['key' => $key], ['value' => $value]);
     }
+
+    public static function discogsUsername(): string
+    {
+        return config('services.discogs.username', '') ?? '';
+    }
 }
