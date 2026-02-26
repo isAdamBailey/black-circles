@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use Database\Seeders\MoodSeeder;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -10,5 +11,6 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
         $this->withoutVite();
+        $this->seed([MoodSeeder::class]);
     }
 }

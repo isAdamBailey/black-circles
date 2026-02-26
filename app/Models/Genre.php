@@ -13,4 +13,9 @@ class Genre extends Model
     {
         return $this->belongsToMany(DiscogsRelease::class, 'discogs_release_genre');
     }
+
+    public static function orderedNames(): array
+    {
+        return static::orderBy('name')->pluck('name')->all();
+    }
 }

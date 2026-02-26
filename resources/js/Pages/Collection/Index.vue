@@ -13,13 +13,14 @@ const props = defineProps({
     lastSynced: { type: String, default: '' },
 });
 
+function ensureArray(val) {
+    if (!val) return [];
+    return Array.isArray(val) ? val : [val];
+}
+
 const search = ref(props.filters.search ?? '');
-const selectedGenres = ref(
-    props.filters.genres ? (Array.isArray(props.filters.genres) ? props.filters.genres : [props.filters.genres]) : []
-);
-const selectedStyles = ref(
-    props.filters.styles ? (Array.isArray(props.filters.styles) ? props.filters.styles : [props.filters.styles]) : []
-);
+const selectedGenres = ref(ensureArray(props.filters.genres));
+const selectedStyles = ref(ensureArray(props.filters.styles));
 const sort = ref(props.filters.sort ?? 'value');
 const direction = ref(props.filters.direction ?? 'desc');
 const showFilters = ref(false);
@@ -91,16 +92,10 @@ function handleClickOutside(event) {
 onMounted(() => document.addEventListener('click', handleClickOutside));
 onUnmounted(() => document.removeEventListener('click', handleClickOutside));
 
-function toggleGenre(genre) {
-    const idx = selectedGenres.value.indexOf(genre);
-    if (idx >= 0) selectedGenres.value.splice(idx, 1);
-    else selectedGenres.value.push(genre);
-}
-
-function toggleStyle(style) {
-    const idx = selectedStyles.value.indexOf(style);
-    if (idx >= 0) selectedStyles.value.splice(idx, 1);
-    else selectedStyles.value.push(style);
+function toggleFilter(selected, value) {
+    const idx = selected.value.indexOf(value);
+    if (idx >= 0) selected.value.splice(idx, 1);
+    else selected.value.push(value);
 }
 
 function clearFilters() {
@@ -269,7 +264,7 @@ const releasesData = computed(() => props.releases?.data ?? []);
                                             ? 'bg-white text-black'
                                             : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
                                     "
-                                    @click="toggleGenre(genre)"
+                                    @click="toggleFilter(selectedGenres, genre)"
                                 >
                                     {{ genre }}
                                 </button>
@@ -287,7 +282,7 @@ const releasesData = computed(() => props.releases?.data ?? []);
                                             ? 'bg-white text-black'
                                             : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
                                     "
-                                    @click="toggleStyle(style)"
+                                    @click="toggleFilter(selectedStyles, style)"
                                 >
                                     {{ style }}
                                 </button>

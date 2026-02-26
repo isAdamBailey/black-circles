@@ -43,13 +43,8 @@ class CollectionController extends Controller
             });
         }
 
-        if ($genres = $request->get('genres')) {
-            $query->whereHas('genres', fn ($q) => $q->whereIn('name', (array) $genres));
-        }
-
-        if ($styles = $request->get('styles')) {
-            $query->whereHas('styles', fn ($q) => $q->whereIn('name', (array) $styles));
-        }
+        $query->whereHasGenres((array) $request->get('genres', []));
+        $query->whereHasStyles((array) $request->get('styles', []));
 
         $sort = trim((string) $request->get('sort', 'value'));
         $direction = in_array($request->get('direction'), ['asc', 'desc']) ? $request->get('direction') : 'desc';
@@ -69,8 +64,8 @@ class CollectionController extends Controller
                 ->select('discogs_releases.*');
         }
 
-        $allGenres = Genre::orderBy('name')->pluck('name');
-        $allStyles = Style::orderBy('name')->pluck('name');
+        $allGenres = Genre::orderedNames();
+        $allStyles = Style::orderedNames();
 
         return Inertia::render('Collection/Index', [
             'releases' => Inertia::scroll(fn () => $query->paginate(48)->withQueryString()),

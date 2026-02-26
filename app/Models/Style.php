@@ -13,4 +13,9 @@ class Style extends Model
     {
         return $this->belongsToMany(DiscogsRelease::class, 'discogs_release_style');
     }
+
+    public static function orderedNames(): array
+    {
+        return static::orderBy('name')->pluck('name')->all();
+    }
 }

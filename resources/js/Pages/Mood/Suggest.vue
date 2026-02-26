@@ -1,6 +1,7 @@
 <script setup>
 import { Link, Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { ref } from 'vue';
 
 const props = defineProps({
     mood: { type: Object, default: () => ({}) },
@@ -8,8 +9,21 @@ const props = defineProps({
     backups: { type: Array, default: () => [] },
 });
 
+const retrying = ref(false);
+
 function tryAgain() {
-    router.visit(route('mood.suggest', props.mood.slug));
+    if (retrying.value) return;
+    retrying.value = true;
+    if (props.mood.vibePrompt) {
+        router.post(route('vibe.suggest'), { prompt: props.mood.vibePrompt }, {
+            preserveScroll: true,
+            onFinish: () => { retrying.value = false; },
+        });
+    } else {
+        router.visit(route('mood.suggest', props.mood.slug), {
+            onFinish: () => { retrying.value = false; },
+        });
+    }
 }
 </script>
 
@@ -72,10 +86,11 @@ function tryAgain() {
                     </p>
                     <button
                         type="button"
-                        class="self-start px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-white text-sm transition-colors"
+                        class="self-start px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-white text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800"
+                        :disabled="retrying"
                         @click="tryAgain"
                     >
-                        Try again
+                        {{ retrying ? 'Finding...' : 'Try again' }}
                     </button>
                 </div>
             </div>

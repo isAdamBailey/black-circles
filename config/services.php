@@ -28,4 +28,8 @@ return [
         'token' => env('DISCOGS_TOKEN', ''),
     ],
 
+    'huggingface' => [
+        'token' => env('HUGGINGFACE_API_TOKEN', ''),
+    ],
+
 ];

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -39,6 +40,38 @@ class DiscogsRelease extends Model
     public function styles(): BelongsToMany
     {
         return $this->belongsToMany(Style::class, 'discogs_release_style');
+    }
+
+    public function scopeWhereHasGenres(Builder $query, array $genres): void
+    {
+        if (empty($genres)) {
+            return;
+        }
+        $query->whereHas('genres', fn ($q) => $q->whereIn('name', $genres));
+    }
+
+    public function scopeWhereHasStyles(Builder $query, array $styles): void
+    {
+        if (empty($styles)) {
+            return;
+        }
+        $query->whereHas('styles', fn ($q) => $q->whereIn('name', $styles));
+    }
+
+    public function scopeOrWhereHasStyles(Builder $query, array $styles): void
+    {
+        if (empty($styles)) {
+            return;
+        }
+        $query->orWhereHas('styles', fn ($q) => $q->whereIn('name', $styles));
+    }
+
+    public function scopeWhereDoesntHaveStyles(Builder $query, array $styles): void
+    {
+        if (empty($styles)) {
+            return;
+        }
+        $query->whereDoesntHave('styles', fn ($q) => $q->whereIn('name', $styles));
     }
 
     public function toSearchableArray(): array
