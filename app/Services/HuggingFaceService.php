@@ -11,11 +11,11 @@ class HuggingFaceService
 
     private const THRESHOLD = 0.15;
 
-    private const MAX_LABELS = 50;
-
     private const MAX_TOP_LABELS = 10;
 
-    private const TIMEOUT = 30;
+    private const TIMEOUT = 90;
+
+    private const CONNECT_TIMEOUT = 10;
 
     /**
      * Zero-shot classify text against candidate labels.
@@ -30,10 +30,6 @@ class HuggingFaceService
             return [];
         }
 
-        if (count($labels) > self::MAX_LABELS) {
-            $labels = array_slice($labels, 0, self::MAX_LABELS);
-        }
-
         $token = config('services.huggingface.token');
         if (empty($token)) {
             return [];
@@ -41,6 +37,7 @@ class HuggingFaceService
 
         try {
             $response = Http::withToken($token)
+                ->connectTimeout(self::CONNECT_TIMEOUT)
                 ->timeout(self::TIMEOUT)
                 ->post('https://router.huggingface.co/hf-inference/models/'.self::MODEL, [
                     'inputs' => $text,
