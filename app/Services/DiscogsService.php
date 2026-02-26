@@ -27,11 +27,38 @@ class DiscogsService
         return $headers;
     }
 
-    /**
-     * Format an artist display name, preferring the ANV (Artist Name Variation)
-     * when set. The ANV is Discogs' way of showing a clean display name without
-     * disambiguation suffixes like "(2)" on artist names.
-     */
+    protected function requestWithRetry(callable $request, string $logMessage, array $logContext = [], int $maxRetries = 5): ?array
+    {
+        $attempt = 0;
+
+        while (true) {
+            try {
+                $response = $request();
+
+                if ($response->successful()) {
+                    return $response->json();
+                }
+
+                if ($response->status() === 429 && $attempt < $maxRetries) {
+                    $retryAfter = (int) ($response->header('Retry-After') ?? 60);
+                    $wait = min($retryAfter, 120);
+                    Log::warning('Discogs rate limited (429), waiting before retry', array_merge($logContext, ['wait_seconds' => $wait, 'attempt' => $attempt + 1]));
+                    sleep($wait);
+                    $attempt++;
+                    continue;
+                }
+
+                Log::error($logMessage, array_merge($logContext, ['status' => $response->status(), 'body' => $response->body()]));
+
+                return null;
+            } catch (\Exception $e) {
+                Log::error('Discogs API exception', array_merge($logContext, ['message' => $e->getMessage()]));
+
+                return null;
+            }
+        }
+    }
+
     protected function artistName(array $artist): string
     {
         return trim($artist['anv'] ?? '') ?: ($artist['name'] ?? '');
@@ -39,40 +66,28 @@ class DiscogsService
 
     public function getCollection(string $username, int $page = 1, int $perPage = 100): ?array
     {
-        try {
-            $response = Http::withHeaders($this->headers())
+        return $this->requestWithRetry(
+            fn () => Http::withHeaders($this->headers())
+                ->timeout(30)
                 ->get("{$this->baseUrl}/users/{$username}/collection/folders/0/releases", [
                     'page' => $page,
                     'per_page' => $perPage,
                     'sort' => 'added',
                     'sort_order' => 'desc',
-                ]);
-
-            if ($response->successful()) {
-                return $response->json();
-            }
-            Log::error('Discogs collection fetch failed', ['status' => $response->status(), 'body' => $response->body()]);
-        } catch (\Exception $e) {
-            Log::error('Discogs API exception', ['message' => $e->getMessage()]);
-        }
-
-        return null;
+                ]),
+            'Discogs collection fetch failed',
+        );
     }
 
     public function getRelease(int $releaseId): ?array
     {
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->get("{$this->baseUrl}/releases/{$releaseId}");
+        $response = $this->requestWithRetry(
+            fn () => Http::withHeaders($this->headers())->timeout(30)->get("{$this->baseUrl}/releases/{$releaseId}"),
+            'Discogs release fetch failed',
+            ['id' => $releaseId],
+        );
 
-            if ($response->successful()) {
-                return $response->json();
-            }
-        } catch (\Exception $e) {
-            Log::error('Discogs release fetch failed', ['id' => $releaseId, 'message' => $e->getMessage()]);
-        }
-
-        return null;
+        return $response;
     }
 
     /**
@@ -83,20 +98,13 @@ class DiscogsService
      */
     public function getMarketplaceStats(int $releaseId, string $currency = 'USD'): ?array
     {
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->get("{$this->baseUrl}/marketplace/stats/{$releaseId}", [
-                    'curr_abbr' => $currency,
-                ]);
-
-            if ($response->successful()) {
-                return $response->json();
-            }
-        } catch (\Exception $e) {
-            Log::error('Discogs marketplace stats fetch failed', ['id' => $releaseId, 'message' => $e->getMessage()]);
-        }
-
-        return null;
+        return $this->requestWithRetry(
+            fn () => Http::withHeaders($this->headers())
+                ->timeout(30)
+                ->get("{$this->baseUrl}/marketplace/stats/{$releaseId}", ['curr_abbr' => $currency]),
+            'Discogs marketplace stats fetch failed',
+            ['id' => $releaseId],
+        );
     }
 
     public function syncCollection(string $username): array
@@ -174,12 +182,12 @@ class DiscogsService
                 $release->update(['lowest_price' => $lowest]);
 
                 $synced++;
-                usleep(1_000_000);
+                usleep(1_500_000);
             }
 
             $page++;
             if ($page <= $totalPages) {
-                usleep(500000);
+                sleep(2);
             }
         } while ($page <= $totalPages);
 
