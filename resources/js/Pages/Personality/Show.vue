@@ -2,17 +2,14 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 
-const props = defineProps({
+defineProps({
     topGenres: { type: Array, default: () => [] },
     topStyles: { type: Array, default: () => [] },
     collectionSize: { type: Number, default: 0 },
-    traits: { type: Object, default: () => ({}) },
+    insight: { type: String, default: '' },
     hasToken: { type: Boolean, default: false },
     username: { type: String, default: '' },
 });
-
-const traitEntries = Object.entries(props.traits).sort((a, b) => b[1] - a[1]);
-const maxScore = traitEntries.length ? traitEntries[0][1] : 1;
 </script>
 
 <template>
@@ -54,9 +51,9 @@ const maxScore = traitEntries.length ? traitEntries[0][1] : 1;
             </div>
 
             <template v-else>
-                <!-- Personality Traits -->
+                <!-- AI Personality Insight -->
                 <div class="mb-10">
-                    <h2 class="text-lg font-semibold text-white mb-4">Personality Traits</h2>
+                    <h2 class="text-lg font-semibold text-white mb-4">Personality Insight</h2>
 
                     <div v-if="!hasToken" class="rounded-xl bg-gray-900 border border-gray-800 p-6 text-center">
                         <p class="text-gray-400">
@@ -66,29 +63,15 @@ const maxScore = traitEntries.length ? traitEntries[0][1] : 1;
                         </p>
                     </div>
 
-                    <div v-else-if="traitEntries.length === 0" class="rounded-xl bg-gray-900 border border-gray-800 p-6 text-center">
-                        <p class="text-gray-500">Could not determine personality traits — the AI model may be warming up. Try again shortly.</p>
+                    <div v-else-if="!insight" class="rounded-xl bg-gray-900 border border-gray-800 p-6 text-center">
+                        <p class="text-gray-500">Could not generate a personality insight — the AI model may be warming up. Try again shortly.</p>
                     </div>
 
-                    <div v-else class="space-y-3">
-                        <div
-                            v-for="[trait, score] in traitEntries"
-                            :key="trait"
-                            class="rounded-xl bg-gray-900 border border-gray-800 p-4"
-                        >
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-white text-sm font-medium capitalize">{{ trait }}</span>
-                                <span class="text-gray-500 text-xs">{{ Math.round(score * 100) }}%</span>
-                            </div>
-                            <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                                <div
-                                    class="h-full bg-white rounded-full transition-all"
-                                    :style="{ width: `${Math.round((score / maxScore) * 100)}%` }"
-                                />
-                            </div>
-                        </div>
+                    <div v-else class="rounded-xl bg-gray-900 border border-gray-800 p-6">
+                        <p class="text-gray-200 leading-relaxed whitespace-pre-line">{{ insight }}</p>
                     </div>
-                    <p class="text-gray-600 text-xs mt-3 text-center">Uses AI — results are inferred from your genre and style preferences.</p>
+
+                    <p class="text-gray-600 text-xs mt-3 text-center">Uses AI — results are inferred from your top styles and genres.</p>
                 </div>
 
                 <!-- Top Genres & Styles -->

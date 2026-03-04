@@ -29,13 +29,14 @@ it('returns top genres and styles from collection', function () {
         );
 });
 
-it('returns personality traits from AI when token is set', function () {
+it('returns AI-generated personality insight when token is set', function () {
     config(['services.huggingface.token' => 'test-token']);
 
     Http::fake([
         'router.huggingface.co/*' => Http::response([
-            'labels' => ['creative and artistic', 'introspective and reflective'],
-            'scores' => [0.88, 0.72],
+            'choices' => [
+                ['message' => ['content' => 'You are a creative and introspective person who values depth.']],
+            ],
         ], 200),
     ]);
 
@@ -49,12 +50,12 @@ it('returns personality traits from AI when token is set', function () {
         ->assertStatus(200)
         ->assertInertia(fn ($page) => $page
             ->component('Personality/Show')
-            ->has('traits')
+            ->where('insight', 'You are a creative and introspective person who values depth.')
             ->where('hasToken', true)
         );
 });
 
-it('returns empty traits when no huggingface token is configured', function () {
+it('returns empty insight when no huggingface token is configured', function () {
     config(['services.huggingface.token' => '']);
 
     $release = DiscogsRelease::factory()->create();
@@ -64,19 +65,19 @@ it('returns empty traits when no huggingface token is configured', function () {
         ->assertStatus(200)
         ->assertInertia(fn ($page) => $page
             ->component('Personality/Show')
-            ->where('traits', [])
+            ->where('insight', '')
             ->where('hasToken', false)
         );
 });
 
-it('returns empty traits when collection is empty', function () {
+it('returns empty insight when collection is empty', function () {
     config(['services.huggingface.token' => 'test-token']);
 
     $this->get(route('personality.show'))
         ->assertStatus(200)
         ->assertInertia(fn ($page) => $page
             ->component('Personality/Show')
-            ->where('traits', [])
+            ->where('insight', '')
             ->where('collectionSize', 0)
         );
 });

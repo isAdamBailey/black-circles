@@ -19,19 +19,18 @@ class PersonalityController extends Controller
         $topStyles = $this->personalityInsight->topStyles();
         $collectionSize = $this->personalityInsight->collectionSize();
 
-        $traits = [];
+        $insight = '';
         $hasToken = ! empty(config('services.huggingface.token'));
 
         if ($hasToken && $collectionSize > 0) {
-            $description = $this->personalityInsight->buildCollectionDescription($topGenres, $topStyles);
-            $traits = $this->personalityInsight->classifyTraits($description);
+            $insight = $this->personalityInsight->generatePersonalityInsight($topStyles, $topGenres);
         }
 
         return Inertia::render('Personality/Show', [
             'topGenres' => $topGenres,
             'topStyles' => $topStyles,
             'collectionSize' => $collectionSize,
-            'traits' => $traits,
+            'insight' => $insight,
             'hasToken' => $hasToken,
             'username' => Setting::discogsUsername(),
         ]);

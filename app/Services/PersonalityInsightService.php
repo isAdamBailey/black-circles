@@ -7,24 +7,6 @@ use Illuminate\Support\Facades\DB;
 
 class PersonalityInsightService
 {
-    /**
-     * Personality trait labels used for zero-shot classification.
-     */
-    private const TRAIT_LABELS = [
-        'open to new experiences and adventurous',
-        'introspective and reflective',
-        'energetic and extroverted',
-        'calm and introverted',
-        'intellectually curious',
-        'emotionally sensitive',
-        'creative and artistic',
-        'rebellious and unconventional',
-        'nostalgic and sentimental',
-        'intense and passionate',
-        'playful and fun-loving',
-        'sophisticated and refined',
-    ];
-
     public function __construct(
         private HuggingFaceService $huggingFace
     ) {}
@@ -38,7 +20,8 @@ class PersonalityInsightService
     {
         return DB::table('discogs_release_genre')
             ->join('genres', 'genres.id', '=', 'discogs_release_genre.genre_id')
-            ->join('discogs_collection_items', 'discogs_collection_items.discogs_release_id', '=', 'discogs_release_genre.discogs_release_id')
+            ->join('discogs_releases', 'discogs_releases.id', '=', 'discogs_release_genre.discogs_release_id')
+            ->join('discogs_collection_items', 'discogs_collection_items.discogs_release_id', '=', 'discogs_releases.discogs_id')
             ->select('genres.name', DB::raw('COUNT(*) as count'))
             ->groupBy('genres.id', 'genres.name')
             ->orderByDesc('count')
@@ -57,7 +40,8 @@ class PersonalityInsightService
     {
         return DB::table('discogs_release_style')
             ->join('styles', 'styles.id', '=', 'discogs_release_style.style_id')
-            ->join('discogs_collection_items', 'discogs_collection_items.discogs_release_id', '=', 'discogs_release_style.discogs_release_id')
+            ->join('discogs_releases', 'discogs_releases.id', '=', 'discogs_release_style.discogs_release_id')
+            ->join('discogs_collection_items', 'discogs_collection_items.discogs_release_id', '=', 'discogs_releases.discogs_id')
             ->select('styles.name', DB::raw('COUNT(*) as count'))
             ->groupBy('styles.id', 'styles.name')
             ->orderByDesc('count')
@@ -76,45 +60,44 @@ class PersonalityInsightService
     }
 
     /**
-     * Build a plain-text description of the collection for the AI model.
+     * Build the AI prompt from the most-used styles (and optionally genres).
+     * Returns an empty string when there are no styles or genres to describe.
      */
-    public function buildCollectionDescription(array $topGenres, array $topStyles): string
+    public function buildPrompt(array $topStyles, array $topGenres = []): string
     {
-        $genreNames = array_column($topGenres, 'name');
         $styleNames = array_column($topStyles, 'name');
+        $genreNames = array_column($topGenres, 'name');
 
-        $parts = [];
-        if (! empty($genreNames)) {
-            $parts[] = 'Genres: '.implode(', ', $genreNames);
+        if (empty($styleNames) && empty($genreNames)) {
+            return '';
         }
+
+        $lines = [];
         if (! empty($styleNames)) {
-            $parts[] = 'Styles: '.implode(', ', $styleNames);
+            $lines[] = 'Most listened styles: '.implode(', ', $styleNames).'.';
+        }
+        if (! empty($genreNames)) {
+            $lines[] = 'Genres: '.implode(', ', $genreNames).'.';
         }
 
-        return implode('. ', $parts);
+        $musicDescription = implode(' ', $lines);
+
+        return "A person's music collection is dominated by the following. {$musicDescription} "
+            .'Based only on these musical preferences, describe what personality traits this person likely has. '
+            .'Be specific, concise, and insightful. Write in second person (\"You are...\").';
     }
 
     /**
-     * Classify the collection description against personality trait labels.
-     *
-     * @return array<string, float> Trait label => score pairs, sorted by score desc
+     * Generate a free-text personality insight for the given top styles using the AI.
+     * Returns an empty string if there are no styles, no token, or the API fails.
      */
-    public function classifyTraits(string $description): array
+    public function generatePersonalityInsight(array $topStyles, array $topGenres = []): string
     {
-        if (empty($description)) {
-            return [];
+        $prompt = $this->buildPrompt($topStyles, $topGenres);
+        if (empty($prompt)) {
+            return '';
         }
 
-        return $this->huggingFace->classifyText($description, self::TRAIT_LABELS);
-    }
-
-    /**
-     * Return the list of all trait labels used for classification.
-     *
-     * @return array<string>
-     */
-    public function traitLabels(): array
-    {
-        return self::TRAIT_LABELS;
+        return $this->huggingFace->generateText($prompt);
     }
 }
