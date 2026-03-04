@@ -9,13 +9,13 @@ class HuggingFaceService
 {
     private const MODEL = 'MoritzLaurer/deberta-v3-base-zeroshot-v2.0';
 
-    private const TEXT_GEN_MODEL = 'mistralai/Mistral-7B-Instruct-v0.3';
+    private const TEXT_GEN_MODEL = 'Qwen/Qwen2.5-1.5B-Instruct';
 
     private const THRESHOLD = 0.15;
 
     private const MAX_TOP_LABELS = 10;
 
-    private const MAX_NEW_TOKENS = 350;
+    private const MAX_NEW_TOKENS = 150;
 
     private const TIMEOUT = 90;
 
@@ -120,10 +120,9 @@ class HuggingFaceService
 
         try {
             $response = Http::withToken($token)
-                ->withHeaders(['X-Wait-For-Model' => 'true'])
                 ->connectTimeout(self::CONNECT_TIMEOUT)
                 ->timeout(self::TIMEOUT)
-                ->post('https://router.huggingface.co/hf-inference/models/'.self::TEXT_GEN_MODEL.'/v1/chat/completions', [
+                ->post('https://router.huggingface.co/featherless-ai/v1/chat/completions', [
                     'model' => self::TEXT_GEN_MODEL,
                     'messages' => [
                         ['role' => 'user', 'content' => $prompt],

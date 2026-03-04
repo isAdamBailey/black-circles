@@ -29,7 +29,7 @@ defineProps({
             </div>
 
             <div v-else class="rounded-xl bg-gray-900 border border-gray-800 p-6 text-center">
-                <p class="text-gray-500">No personality insight available yet. Make sure your collection is synced and a Hugging Face API token is configured.</p>
+                <p class="text-gray-500">No personality insight yet. Run <code class="text-gray-400">personality:generate</code> or wait for the next weekly sync.</p>
             </div>
 
             <p class="text-gray-600 text-xs mt-3 text-center">Uses AI — results are inferred from your top styles and genres.</p>

@@ -2,6 +2,7 @@
 
 use App\Models\DiscogsCollectionItem;
 use App\Models\DiscogsRelease;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Http;
 
 it('renders the personality page', function () {
@@ -10,13 +11,33 @@ it('renders the personality page', function () {
         ->assertInertia(fn ($page) => $page->component('Personality/Show'));
 });
 
-it('returns AI-generated personality insight when token is set', function () {
+it('returns stored insight from settings', function () {
+    Setting::set('personality_insight', 'You are a creative and introspective person who values depth.');
+
+    $this->get(route('personality.show'))
+        ->assertStatus(200)
+        ->assertInertia(fn ($page) => $page
+            ->component('Personality/Show')
+            ->where('insight', 'You are a creative and introspective person who values depth.')
+        );
+});
+
+it('returns empty string when no insight stored in settings', function () {
+    $this->get(route('personality.show'))
+        ->assertStatus(200)
+        ->assertInertia(fn ($page) => $page
+            ->component('Personality/Show')
+            ->where('insight', '')
+        );
+});
+
+it('personality:generate stores insight in settings', function () {
     config(['services.huggingface.token' => 'test-token']);
 
     Http::fake([
         'router.huggingface.co/*' => Http::response([
             'choices' => [
-                ['message' => ['content' => 'You are a creative and introspective person who values depth.']],
+                ['message' => ['content' => 'You are adventurous and open-minded.']],
             ],
         ], 200),
     ]);
@@ -27,35 +48,23 @@ it('returns AI-generated personality insight when token is set', function () {
         ->create();
     DiscogsCollectionItem::factory()->for($release, 'release')->create();
 
-    $this->get(route('personality.show'))
-        ->assertStatus(200)
-        ->assertInertia(fn ($page) => $page
-            ->component('Personality/Show')
-            ->where('insight', 'You are a creative and introspective person who values depth.')
-        );
+    $this->artisan('personality:generate')->assertExitCode(0);
+
+    expect(Setting::get('personality_insight'))->toBe('You are adventurous and open-minded.');
 });
 
-it('returns empty insight when no huggingface token is configured', function () {
+it('personality:generate skips when no huggingface token configured', function () {
     config(['services.huggingface.token' => '']);
 
-    $release = DiscogsRelease::factory()->create();
-    DiscogsCollectionItem::factory()->for($release, 'release')->create();
+    $this->artisan('personality:generate')->assertExitCode(0);
 
-    $this->get(route('personality.show'))
-        ->assertStatus(200)
-        ->assertInertia(fn ($page) => $page
-            ->component('Personality/Show')
-            ->where('insight', '')
-        );
+    expect(Setting::get('personality_insight'))->toBeNull();
 });
 
-it('returns empty insight when collection is empty', function () {
+it('personality:generate skips when collection is empty', function () {
     config(['services.huggingface.token' => 'test-token']);
 
-    $this->get(route('personality.show'))
-        ->assertStatus(200)
-        ->assertInertia(fn ($page) => $page
-            ->component('Personality/Show')
-            ->where('insight', '')
-        );
+    $this->artisan('personality:generate')->assertExitCode(0);
+
+    expect(Setting::get('personality_insight'))->toBeNull();
 });

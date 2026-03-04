@@ -19,7 +19,7 @@ it('builds a prompt from top styles and genres', function () {
         ->and($prompt)->toContain('Ambient')
         ->and($prompt)->toContain('Rock')
         ->and($prompt)->toContain('Electronic')
-        ->and($prompt)->toContain('personality traits');
+        ->and($prompt)->toContain('personality');
 });
 
 it('returns empty prompt when both styles and genres are empty', function () {

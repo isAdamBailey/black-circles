@@ -11,4 +11,5 @@ Artisan::command('inspire', function () {
 Schedule::command('discogs:sync')
     ->weekly()
     ->at('00:00')
-    ->timezone('America/Los_Angeles');
+    ->timezone('America/Los_Angeles')
+    ->then(fn () => Artisan::call('personality:generate'));

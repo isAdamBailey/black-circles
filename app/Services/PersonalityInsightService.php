@@ -83,8 +83,8 @@ class PersonalityInsightService
         $musicDescription = implode(' ', $lines);
 
         return "A person's music collection is dominated by the following. {$musicDescription} "
-            .'Based only on these musical preferences, describe what personality traits this person likely has. '
-            .'Be specific, concise, and insightful. Write in second person (\"You are...\").';
+            .'Based only on these musical preferences, describe their personality in 2-3 sentences. '
+            .'Be specific and insightful. Write in second person (\"You are...\"). Do not add any preamble.';
     }
 
     /**
