@@ -116,6 +116,13 @@ function submitVibe() {
                     >
                         Browse full collection →
                     </Link>
+                    <Link
+                        v-if="username"
+                        :href="route('personality.show')"
+                        class="text-gray-500 hover:text-white text-sm transition-colors"
+                    >
+                        🎭 My music personality →
+                    </Link>
                 </div>
             </div>
         </div>
