@@ -120,6 +120,7 @@ class HuggingFaceService
 
         try {
             $response = Http::withToken($token)
+                ->withHeaders(['X-Wait-For-Model' => 'true'])
                 ->connectTimeout(self::CONNECT_TIMEOUT)
                 ->timeout(self::TIMEOUT)
                 ->post('https://router.huggingface.co/hf-inference/models/'.self::TEXT_GEN_MODEL.'/v1/chat/completions', [
