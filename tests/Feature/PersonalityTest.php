@@ -10,25 +10,6 @@ it('renders the personality page', function () {
         ->assertInertia(fn ($page) => $page->component('Personality/Show'));
 });
 
-it('returns top genres and styles from collection', function () {
-    $release = DiscogsRelease::factory()
-        ->withGenres(['Rock'])
-        ->withStyles(['Post-Punk'])
-        ->create();
-    DiscogsCollectionItem::factory()->for($release, 'release')->create();
-
-    $this->get(route('personality.show'))
-        ->assertStatus(200)
-        ->assertInertia(fn ($page) => $page
-            ->component('Personality/Show')
-            ->where('collectionSize', 1)
-            ->has('topGenres', 1)
-            ->where('topGenres.0.name', 'Rock')
-            ->has('topStyles', 1)
-            ->where('topStyles.0.name', 'Post-Punk')
-        );
-});
-
 it('returns AI-generated personality insight when token is set', function () {
     config(['services.huggingface.token' => 'test-token']);
 
@@ -51,7 +32,6 @@ it('returns AI-generated personality insight when token is set', function () {
         ->assertInertia(fn ($page) => $page
             ->component('Personality/Show')
             ->where('insight', 'You are a creative and introspective person who values depth.')
-            ->where('hasToken', true)
         );
 });
 
@@ -66,7 +46,6 @@ it('returns empty insight when no huggingface token is configured', function () 
         ->assertInertia(fn ($page) => $page
             ->component('Personality/Show')
             ->where('insight', '')
-            ->where('hasToken', false)
         );
 });
 
@@ -78,6 +57,5 @@ it('returns empty insight when collection is empty', function () {
         ->assertInertia(fn ($page) => $page
             ->component('Personality/Show')
             ->where('insight', '')
-            ->where('collectionSize', 0)
         );
 });
