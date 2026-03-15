@@ -37,7 +37,7 @@ function tryAgain() {
 
 <template>
     <AppLayout>
-        <Head :title="`${mood.label} – Discover`" />
+        <Head :title="`${mood.label} – Adam's Collection`" />
 
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Link
@@ -89,9 +89,7 @@ function tryAgain() {
                 </Link>
 
                 <div class="flex-1 flex flex-col justify-center">
-                    <p class="text-gray-500 mb-6">
-                        We picked this for you. Tap to view details, or try again for something different.
-                    </p>
+                    <p class="text-gray-500 mb-6">Picked from Adam&apos;s collection. Open details or try again.</p>
                     <button
                         type="button"
                         class="self-start px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-white text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800"
@@ -104,7 +102,9 @@ function tryAgain() {
             </div>
 
             <div v-if="backups.length" class="border-t border-gray-800 pt-8">
-                <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Also consider</h3>
+                <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                    Also in Adam&apos;s collection
+                </h3>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <Link
                         v-for="r in backups"

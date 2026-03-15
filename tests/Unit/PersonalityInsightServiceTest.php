@@ -21,7 +21,8 @@ it('builds a prompt from top styles and genres', function () {
         ->and($prompt)->toContain('Ambient')
         ->and($prompt)->toContain('Rock')
         ->and($prompt)->toContain('Electronic')
-        ->and($prompt)->toContain('personality');
+        ->and($prompt)->toContain('personality')
+        ->and($prompt)->toContain('Adam is a');
 });
 
 it('returns empty prompt when both styles and genres are empty', function () {
@@ -56,7 +57,7 @@ it('generates personality insight via huggingface text generation', function () 
         [['name' => 'Rock', 'count' => 3]]
     );
 
-    expect($result)->toBe('You are a creative and introspective person.');
+    expect($result)->toBe('Adam is a creative and introspective person.');
 });
 
 it('returns empty string when styles and genres are empty', function () {

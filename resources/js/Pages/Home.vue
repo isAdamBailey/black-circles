@@ -7,6 +7,7 @@ import { ref } from 'vue';
 defineProps({
     moods: { type: Array, default: () => [] },
     username: { type: String, default: '' },
+    insight: { type: String, default: '' },
 });
 
 const prompt = ref('');
@@ -35,8 +36,10 @@ function submitVibe() {
 
         <div class="min-h-[calc(100vh-4rem)] flex flex-col">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 flex flex-col justify-center">
-                <h1 class="text-4xl sm:text-5xl font-bold text-white text-center mb-3">What’s the vibe?</h1>
-                <p class="text-gray-500 text-center mb-8">Describe the music you want, or pick a mood</p>
+                <h1 class="text-4xl sm:text-5xl font-bold text-white text-center mb-3">Pick a mood</h1>
+                <p class="text-gray-500 text-center mb-8">
+                    Describe what you want to hear from Adam&apos;s collection, or pick a mood
+                </p>
 
                 <form
                     v-if="username"
@@ -54,7 +57,9 @@ function submitVibe() {
                         {{ processing ? 'Finding...' : 'Find it' }}
                     </PrimaryButton>
                 </form>
-                <p v-if="username" class="text-center text-gray-600 text-sm mb-6">Uses AI — results may vary</p>
+                <p v-if="username" class="text-center text-gray-600 text-sm mb-6">
+                    Uses AI on Adam&apos;s collection — results may vary
+                </p>
 
                 <div v-if="!username" class="text-center py-16">
                     <div class="text-6xl mb-4">⚫</div>
@@ -88,6 +93,16 @@ function submitVibe() {
                     </Link>
                 </div>
 
+                <div v-if="username && insight" class="mt-8 rounded-xl bg-gray-900 border border-gray-800 p-6">
+                    <div class="flex items-center justify-between gap-3 mb-3">
+                        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                            Adam&apos;s music personality
+                        </h2>
+                        <span class="text-[11px] text-gray-500 uppercase tracking-wider">AI generated</span>
+                    </div>
+                    <p class="text-gray-200 leading-relaxed whitespace-pre-line">{{ insight }}</p>
+                </div>
+
                 <div class="mt-16 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
                     <Link
                         v-if="username"
@@ -108,20 +123,13 @@ function submitVibe() {
                                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                             />
                         </svg>
-                        Random release
+                        Random release from Adam&apos;s collection
                     </Link>
                     <Link
                         :href="route('collection.index')"
                         class="text-gray-500 hover:text-white text-sm transition-colors"
                     >
-                        Browse full collection →
-                    </Link>
-                    <Link
-                        v-if="username"
-                        :href="route('personality.show')"
-                        class="text-gray-500 hover:text-white text-sm transition-colors"
-                    >
-                        🎭 My music personality →
+                        Browse Adam&apos;s collection →
                     </Link>
                 </div>
             </div>

@@ -5,28 +5,22 @@ use App\Models\DiscogsRelease;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Http;
 
-it('renders the personality page', function () {
-    $this->get(route('personality.show'))
-        ->assertStatus(200)
-        ->assertInertia(fn ($page) => $page->component('Personality/Show'));
-});
+it('includes personality insight on the home page', function () {
+    Setting::set('personality_insight', 'Adam is a creative and introspective person who values depth.');
 
-it('returns stored insight from settings', function () {
-    Setting::set('personality_insight', 'You are a creative and introspective person who values depth.');
-
-    $this->get(route('personality.show'))
+    $this->get(route('home'))
         ->assertStatus(200)
         ->assertInertia(fn ($page) => $page
-            ->component('Personality/Show')
-            ->where('insight', 'You are a creative and introspective person who values depth.')
+            ->component('Home')
+            ->where('insight', 'Adam is a creative and introspective person who values depth.')
         );
 });
 
-it('returns empty string when no insight stored in settings', function () {
-    $this->get(route('personality.show'))
+it('returns empty insight on home when no insight stored in settings', function () {
+    $this->get(route('home'))
         ->assertStatus(200)
         ->assertInertia(fn ($page) => $page
-            ->component('Personality/Show')
+            ->component('Home')
             ->where('insight', '')
         );
 });
@@ -50,7 +44,7 @@ it('personality:generate stores insight in settings', function () {
 
     $this->artisan('personality:generate')->assertExitCode(0);
 
-    expect(Setting::get('personality_insight'))->toBe('You are adventurous and open-minded.');
+    expect(Setting::get('personality_insight'))->toBe('Adam is adventurous and open-minded.');
 });
 
 it('personality:generate skips when no huggingface token configured', function () {

@@ -84,7 +84,8 @@ class PersonalityInsightService
 
         return "A person's music collection is dominated by the following. {$musicDescription} "
             .'Based only on these musical preferences, describe their personality in 2-3 sentences. '
-            .'Be specific and insightful. Write in second person (\"You are...\"). Do not add any preamble.';
+            .'Be specific and insightful. Start the first sentence with "Adam is a". '
+            .'Write in third person about Adam. Do not add any preamble.';
     }
 
     /**
@@ -98,6 +99,17 @@ class PersonalityInsightService
             return '';
         }
 
-        return $this->huggingFace->generateText($prompt);
+        $insight = trim($this->huggingFace->generateText($prompt));
+
+        if ($insight === '') {
+            return '';
+        }
+
+        $insight = preg_replace('/^you are an\s+/i', 'Adam is an ', $insight, 1) ?? $insight;
+        $insight = preg_replace('/^you are a\s+/i', 'Adam is a ', $insight, 1) ?? $insight;
+        $insight = preg_replace('/^you are\s+/i', 'Adam is ', $insight, 1) ?? $insight;
+        $insight = preg_replace('/^adam is\s+/i', 'Adam is ', $insight, 1) ?? $insight;
+
+        return $insight;
     }
 }

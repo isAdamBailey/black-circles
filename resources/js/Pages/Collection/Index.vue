@@ -130,12 +130,9 @@ const releasesData = computed(() => props.releases?.data ?? []);
             <!-- Header -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div>
-                    <h1 class="text-3xl font-bold text-white">
-                        Vinyl Collection
-                        <span v-if="username" class="text-gray-400 text-lg font-normal ml-2">@{{ username }}</span>
-                    </h1>
+                    <h1 class="text-3xl font-bold text-white">Adam&apos;s Vinyl Collection</h1>
                     <p class="text-gray-500 text-sm mt-1">
-                        {{ releases.total }} records
+                        {{ releases.total }} records in Adam&apos;s collection
                         <span v-if="lastSynced"> · Last synced {{ formatDate(lastSynced) }}</span>
                     </p>
                 </div>
@@ -162,7 +159,7 @@ const releasesData = computed(() => props.releases?.data ?? []);
                         <input
                             v-model="search"
                             type="text"
-                            placeholder="Search titles, artists, labels…"
+                            placeholder="Search Adam's titles, artists, labels…"
                             autocomplete="off"
                             class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-gray-500 text-sm"
                         />

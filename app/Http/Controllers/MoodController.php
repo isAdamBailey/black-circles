@@ -26,6 +26,7 @@ class MoodController extends Controller
         return Inertia::render('Home', [
             'moods' => $moods,
             'username' => Setting::discogsUsername(),
+            'insight' => Setting::get('personality_insight', ''),
         ]);
     }
 
