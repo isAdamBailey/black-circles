@@ -29,6 +29,7 @@ class SyncDiscogsCollection extends Command
         $result = $discogs->syncCollection($username, $this->option('fast'));
 
         $this->info("Synced {$result['synced']} items.");
+        $this->info("Deleted {$result['deleted_items']} stale collection item(s) and {$result['deleted_releases']} orphan release(s).");
 
         if ($result['synced'] === 0) {
             $this->warn('No items synced. Check: Discogs username is correct, collection has items, DISCOGS_TOKEN improves rate limits.');

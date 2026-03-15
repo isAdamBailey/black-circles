@@ -118,29 +118,47 @@ class DiscogsService
     public function syncCollection(string $username, bool $skipPrices = false): array
     {
         $synced = 0;
+        $deletedItems = 0;
+        $deletedReleases = 0;
         $page = 1;
         $totalPages = 1;
+        $syncedInstanceIds = [];
+        $syncCompleted = true;
+        $emptyCollection = false;
 
         do {
             $data = $this->getCollection($username, $page, 100);
-            if (! $data || empty($data['releases'])) {
-                if ($page === 1 && (! $data || (isset($data['pagination']) && empty($data['releases'])))) {
+            if (! $data) {
+                $syncCompleted = false;
+                if ($page === 1) {
                     $this->progressCallback && ($this->progressCallback)('No data from Discogs API (page 1). Check username and rate limits.');
                 }
                 break;
             }
 
             $totalPages = $data['pagination']['pages'] ?? 1;
+            $releases = $data['releases'] ?? [];
 
-            if ($this->progressCallback) {
-                ($this->progressCallback)("Page {$page}/{$totalPages} — ".count($data['releases']).' releases');
+            if ($page === 1 && empty($releases)) {
+                $emptyCollection = true;
+                break;
             }
 
-            foreach ($data['releases'] as $item) {
+            if (empty($releases)) {
+                $syncCompleted = false;
+                break;
+            }
+
+            if ($this->progressCallback) {
+                ($this->progressCallback)("Page {$page}/{$totalPages} — ".count($releases).' releases');
+            }
+
+            foreach ($releases as $item) {
                 $basicInfo = $item['basic_information'] ?? [];
                 $releaseId = $basicInfo['id'] ?? null;
+                $instanceId = $item['instance_id'] ?? null;
 
-                if (! $releaseId) {
+                if (! $releaseId || ! $instanceId) {
                     continue;
                 }
 
@@ -182,7 +200,7 @@ class DiscogsService
                 // The collection API returns folder_id (integer) and notes as an array
                 // of field-value objects: [{"field_id": 1, "value": "my note"}]
                 DiscogsCollectionItem::updateOrCreate(
-                    ['instance_id' => $item['instance_id']],
+                    ['instance_id' => $instanceId],
                     [
                         'discogs_release_id' => $releaseId,
                         'folder_id' => $item['folder_id'] ?? null,
@@ -199,6 +217,7 @@ class DiscogsService
                 }
 
                 $synced++;
+                $syncedInstanceIds[] = $instanceId;
                 usleep($skipPrices ? 500_000 : 1_500_000);
             }
 
@@ -208,9 +227,27 @@ class DiscogsService
             }
         } while ($page <= $totalPages);
 
+        if ($syncCompleted) {
+            $collectionItemsToDelete = DiscogsCollectionItem::query();
+            if (! $emptyCollection) {
+                $collectionItemsToDelete->whereNotIn('instance_id', $syncedInstanceIds);
+            }
+            $deletedItems = (clone $collectionItemsToDelete)->count();
+            $collectionItemsToDelete->delete();
+
+            $orphanReleases = DiscogsRelease::whereDoesntHave('collectionItem');
+            $deletedReleases = (clone $orphanReleases)->count();
+            $orphanReleases->delete();
+        }
+
         Setting::set('collection_last_synced', now()->toISOString());
 
-        return ['synced' => $synced, 'username' => $username];
+        return [
+            'synced' => $synced,
+            'deleted_items' => $deletedItems,
+            'deleted_releases' => $deletedReleases,
+            'username' => $username,
+        ];
     }
 
     public function enrichRelease(DiscogsRelease $release): DiscogsRelease
