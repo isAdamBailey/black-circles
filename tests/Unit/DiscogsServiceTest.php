@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\DiscogsRelease;
 use App\Models\DiscogsCollectionItem;
+use App\Models\DiscogsRelease;
 use App\Services\DiscogsService;
 use Illuminate\Support\Facades\Http;
 
