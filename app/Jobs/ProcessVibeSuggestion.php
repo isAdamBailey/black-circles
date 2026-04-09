@@ -23,12 +23,15 @@ class ProcessVibeSuggestion implements ShouldQueue
 
     public function handle(VibeSuggestionService $vibeSuggestion): void
     {
+        $pollTimeoutSeconds = max(1, (int) config('services.vibe.poll_timeout_seconds', 180));
+        $cacheTtlSeconds = $pollTimeoutSeconds + 30;
+
         $existing = Cache::get($this->cacheKey);
         $queuedAt = is_array($existing) ? ($existing['queued_at'] ?? time()) : time();
         Cache::put($this->cacheKey, [
             'status' => 'processing',
             'queued_at' => $queuedAt,
-        ], 600);
+        ], $cacheTtlSeconds);
 
         try {
             $props = $vibeSuggestion->buildSuggestion($this->prompt, $this->moodForUi, $this->moodPresetTags);
@@ -36,7 +39,7 @@ class ProcessVibeSuggestion implements ShouldQueue
                 Cache::put($this->cacheKey, [
                     'status' => 'error',
                     'error' => 'Your collection is empty. Sync your Discogs collection to get suggestions.',
-                ], 600);
+                ], $cacheTtlSeconds);
 
                 return;
             }
@@ -44,13 +47,13 @@ class ProcessVibeSuggestion implements ShouldQueue
             Cache::put($this->cacheKey, [
                 'status' => 'complete',
                 'props' => $props,
-            ], 600);
+            ], $cacheTtlSeconds);
         } catch (\Throwable $e) {
             Log::warning('Vibe suggestion job failed', ['message' => $e->getMessage()]);
             Cache::put($this->cacheKey, [
                 'status' => 'error',
                 'error' => 'Could not generate suggestions. Try again in a moment.',
-            ], 600);
+            ], $cacheTtlSeconds);
         }
     }
 }
