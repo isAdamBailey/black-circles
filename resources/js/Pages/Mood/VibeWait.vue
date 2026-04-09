@@ -6,11 +6,12 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 const props = defineProps({
     token: { type: String, required: true },
+    pollTimeoutSeconds: { type: Number, default: 180 },
 });
 
 const errorMessage = ref('');
 
-const maxPollAttempts = 720;
+const maxPollAttempts = Math.max(1, Math.ceil(props.pollTimeoutSeconds));
 const maxConsecutiveCacheMisses = 60;
 
 let pollCount = 0;
