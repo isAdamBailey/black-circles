@@ -25,6 +25,25 @@ services:
         depends_on:
             - mysql
             - meilisearch
+    queue:
+        build:
+            context: ./vendor/laravel/sail/runtimes/8.3
+            dockerfile: Dockerfile
+            args:
+                WWWGROUP: '${WWWGROUP}'
+        image: sail-8.3/app
+        restart: unless-stopped
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - mysql
+            - meilisearch
+        command: php artisan queue:work --sleep=3 --tries=1 --timeout=120 --max-jobs=250
     mysql:
         image: 'mysql:8.4'
         ports:

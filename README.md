@@ -23,28 +23,70 @@ Laravel 12 (PHP 8.3), Vue 3 + Inertia.js, Tailwind, MySQL 8.4, Meilisearch (Scou
 | Mood search | `MoritzLaurer/deberta-v3-base-zeroshot-v2.0` — zero-shot text classification |
 | Personality insight | `Qwen/Qwen2.5-1.5B-Instruct` — instruction-tuned LLM |
 
-## Setup
+## Running locally
 
-Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or another Docker engine). [Composer](https://getcomposer.org/) on the host is enough to install PHP dependencies; Sail runs the app inside containers.
+
+### 1. Install dependencies and env
 
 ```bash
 composer install
 cp .env.example .env
-sail up -d
-sail artisan key:generate
-sail artisan migrate
-sail npm install
-sail npm run dev
 ```
 
-Add to `.env`:
+Edit `.env` with at least the variables in the table below. Defaults already point Sail at the bundled MySQL and Meilisearch (`DB_HOST=mysql`, `MEILISEARCH_HOST=http://meilisearch:7700`).
+
+### 2. Start Sail
+
+Use the Sail binary (or a [`sail` shell alias](https://laravel.com/docs/sail#configuring-a-shell-alias)):
+
+```bash
+./vendor/bin/sail up -d
+```
+
+This starts the app (`laravel.test`), MySQL, Meilisearch, and a **`queue`** container that runs `php artisan queue:work`. Natural-language vibe search and AI mood suggestions are queued; without a worker they will not finish.
+
+### 3. App setup
+
+```bash
+./vendor/bin/sail artisan key:generate
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail npm install
+./vendor/bin/sail npm run dev
+```
+
+Open **http://localhost** unless you changed `APP_PORT` / port mappings in `.env`.
+
+### 4. Load your collection
+
+Sync from Discogs (username can come from `.env` or the argument):
+
+```bash
+./vendor/bin/sail artisan discogs:sync your_discogs_username
+```
+
+Until you sync, grids and AI suggestions have nothing to match against.
+
+### Environment variables
 
 | Variable | Required | Notes |
 |---|---|---|
-| `DISCOGS_USERNAME` | Yes | Your public Discogs username |
-| `DISCOGS_TOKEN` | No | Improves rate limits — get at [discogs.com/settings/developers](https://www.discogs.com/settings/developers) |
-| `HUGGINGFACE_TOKEN` | No | Enables AI mood search and personality insight — get at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) |
+| `DISCOGS_USERNAME` | For automated / scheduled sync | Your public Discogs username; you can also pass username to `discogs:sync` |
+| `DISCOGS_TOKEN` | No | Improves Discogs rate limits — [discogs.com/settings/developers](https://www.discogs.com/settings/developers) |
+| `HUGGINGFACE_API_TOKEN` | No | **Vibe** search, AI **mood** picks, and **personality** insight — [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) (Read scope is enough) |
 | `VITE_GOOGLE_TAG_ID` | No | Google Analytics tag ID |
+
+Optional: `VIBE_POLL_TIMEOUT_SECONDS` (min 30 seconds when set) controls how long the wait page will poll before treating a stuck job as timed out.
+
+### If you are not using this repo’s `docker-compose.yml`
+
+Run a queue worker in a second terminal so AI suggestions can complete:
+
+```bash
+./vendor/bin/sail artisan queue:work
+```
+
+Use a **shared** cache store (this project defaults to `CACHE_STORE=database`) for both the web container and the worker so vibe wait/poll state is visible everywhere.
 
 ## Syncing
 

@@ -38,4 +38,23 @@ class Mood extends Model
     {
         return $this->excludeStyles->pluck('style_name')->all();
     }
+
+    public function aiPromptString(): string
+    {
+        $parts = ["Music that fits the mood \"{$this->label}\" for a personal record collection."];
+        $genres = $this->getGenreNames();
+        $styles = $this->getStyleNames();
+        $exclude = $this->getExcludeStyleNames();
+        if ($genres !== []) {
+            $parts[] = 'Genre hints: '.implode(', ', $genres).'.';
+        }
+        if ($styles !== []) {
+            $parts[] = 'Style hints: '.implode(', ', $styles).'.';
+        }
+        if ($exclude !== []) {
+            $parts[] = 'Prefer to avoid: '.implode(', ', $exclude).'.';
+        }
+
+        return implode(' ', $parts);
+    }
 }

@@ -9,22 +9,31 @@ beforeEach(function () {
 });
 
 it('returns suggestions when prompt matches collection genres and styles', function () {
-    Http::fake([
-        'router.huggingface.co/*' => Http::response([
-            'labels' => ['Post-Punk', 'Gothic Rock', 'Rock'],
-            'scores' => [0.9, 0.85, 0.7],
-        ], 200),
-    ]);
-
     $release = DiscogsRelease::factory()
         ->withGenres(['Rock'])
         ->withStyles(['Post-Punk', 'Gothic Rock'])
         ->create(['title' => 'Test Album', 'artist' => 'Test Artist']);
     DiscogsCollectionItem::factory()->for($release, 'release')->create();
 
-    $response = $this->post(route('vibe.suggest'), ['prompt' => 'dark moody post-punk']);
+    Http::fake([
+        'https://router.huggingface.co/hf-inference/*' => Http::response([
+            'labels' => ['Post-Punk', 'Gothic Rock', 'Rock'],
+            'scores' => [0.9, 0.85, 0.7],
+        ], 200),
+        'https://router.huggingface.co/featherless-ai/*' => Http::response([
+            'choices' => [
+                ['message' => ['content' => (string) $release->discogs_id]],
+            ],
+        ], 200),
+    ]);
 
-    $response->assertStatus(200)
+    $post = $this->post(route('vibe.suggest'), ['prompt' => 'dark moody post-punk']);
+    $post->assertRedirect();
+    $wait = $this->get($post->headers->get('Location'));
+    $wait->assertRedirect();
+    $result = $this->get($wait->headers->get('Location'));
+
+    $result->assertStatus(200)
         ->assertInertia(fn ($page) => $page
             ->component('Mood/Suggest')
             ->has('mood')
@@ -48,15 +57,19 @@ it('redirects to home when prompt is too short', function () {
 
 it('falls back to random releases when API fails', function () {
     Http::fake([
-        'router.huggingface.co/*' => Http::response([], 503),
+        'https://router.huggingface.co/*' => Http::response([], 503),
     ]);
 
     $release = DiscogsRelease::factory()->create();
     DiscogsCollectionItem::factory()->for($release, 'release')->create();
 
-    $response = $this->post(route('vibe.suggest'), ['prompt' => 'something chill']);
+    $post = $this->post(route('vibe.suggest'), ['prompt' => 'something chill']);
+    $post->assertRedirect();
+    $wait = $this->get($post->headers->get('Location'));
+    $wait->assertRedirect();
+    $result = $this->get($wait->headers->get('Location'));
 
-    $response->assertStatus(200)
+    $result->assertStatus(200)
         ->assertInertia(fn ($page) => $page
             ->component('Mood/Suggest')
             ->has('primary')
@@ -72,16 +85,25 @@ it('redirects to home with error when API token is missing', function () {
         ->assertSessionHas('error');
 });
 
+it('redirects GET /vibe to home', function () {
+    $this->get(route('vibe.suggest.get'))->assertRedirect(route('home'));
+});
+
 it('redirects to home when collection is empty', function () {
-    Http::fake([
-        'router.huggingface.co/*' => Http::response([
-            'labels' => ['Jazz'],
-            'scores' => [0.9],
-        ], 200),
-    ]);
+    $post = $this->post(route('vibe.suggest'), ['prompt' => 'smooth jazz']);
+    $post->assertRedirect();
+    $wait = $this->get($post->headers->get('Location'));
 
-    $response = $this->post(route('vibe.suggest'), ['prompt' => 'smooth jazz']);
-
-    $response->assertRedirect(route('home'))
+    $wait->assertRedirect(route('home'))
         ->assertSessionHas('error');
+});
+
+it('poll returns pending with cache_miss when cache entry is missing', function () {
+    $response = $this->getJson(route('vibe.poll', 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'));
+
+    $response->assertOk();
+    $data = $response->json();
+    expect($data['ready'])->toBeFalse()
+        ->and($data['error'])->toBeNull()
+        ->and($data['cache_miss'] ?? null)->toBeTrue();
 });

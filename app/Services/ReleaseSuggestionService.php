@@ -16,11 +16,15 @@ class ReleaseSuggestionService
         $query = DiscogsRelease::query()
             ->whereHas('collectionItem')
             ->where(function ($q) use ($genres, $styles) {
-                if (! empty($genres)) {
+                if (! empty($genres) && ! empty($styles)) {
+                    $q->where(function ($inner) use ($genres, $styles) {
+                        $inner->whereHasGenres($genres)
+                            ->orWhereHasStyles($styles);
+                    });
+                } elseif (! empty($genres)) {
                     $q->whereHasGenres($genres);
-                }
-                if (! empty($styles)) {
-                    $q->orWhereHasStyles($styles);
+                } elseif (! empty($styles)) {
+                    $q->whereHasStyles($styles);
                 }
             })
             ->whereDoesntHaveStyles($excludeStyles);
@@ -30,6 +34,43 @@ class ReleaseSuggestionService
             ->inRandomOrder()
             ->limit($limit)
             ->get();
+    }
+
+    public function scoutCollectionReleases(string $prompt, int $limit): Collection
+    {
+        $prompt = trim($prompt);
+        if ($prompt === '') {
+            return collect();
+        }
+
+        try {
+            $hits = DiscogsRelease::search($prompt)->take(max($limit * 2, $limit))->get();
+            if ($hits->isEmpty()) {
+                return collect();
+            }
+
+            $orderedIds = $hits->pluck('id')->all();
+            $inCollection = DiscogsRelease::query()
+                ->whereIn('id', $orderedIds)
+                ->whereHas('collectionItem')
+                ->pluck('id')
+                ->all();
+            $inSet = array_flip($inCollection);
+            $filteredIds = array_values(array_filter($orderedIds, fn (int|string $id) => isset($inSet[$id])));
+            $filteredIds = array_slice($filteredIds, 0, $limit);
+            if ($filteredIds === []) {
+                return collect();
+            }
+
+            return DiscogsRelease::query()
+                ->whereIn('id', $filteredIds)
+                ->with(['genres', 'styles'])
+                ->get()
+                ->sortBy(fn (DiscogsRelease $r) => array_search($r->id, $filteredIds, true))
+                ->values();
+        } catch (\Throwable) {
+            return collect();
+        }
     }
 
     public function randomReleases(int $limit): Collection
