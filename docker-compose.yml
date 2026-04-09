@@ -42,6 +42,7 @@ services:
             - sail
         depends_on:
             - mysql
+            - meilisearch
         command: php artisan queue:work --sleep=3 --tries=1 --timeout=120 --max-jobs=250
     mysql:
         image: 'mysql:8.4'
