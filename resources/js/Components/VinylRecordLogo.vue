@@ -14,11 +14,7 @@ const shineId = `vinyl-shine-${uid}`;
         :class="spinning ? 'vinyl-record--spin vinyl-record--glow' : ''"
         aria-hidden="true"
     >
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 200 200"
-            class="block h-full w-full"
-        >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" class="block h-full w-full">
             <defs>
                 <linearGradient :id="shineId" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28" />
@@ -44,24 +40,9 @@ const shineId = `vinyl-shine-${uid}`;
                 stroke-linecap="round"
                 opacity="0.95"
             />
-            <circle
-                cx="100"
-                cy="100"
-                r="34"
-                :fill="`url(#${labelId})`"
-                stroke="#27272a"
-                stroke-width="1.5"
-            />
+            <circle cx="100" cy="100" r="34" :fill="`url(#${labelId})`" stroke="#27272a" stroke-width="1.5" />
             <circle cx="100" cy="100" r="11" fill="#0a0a0a" stroke="#a1a1aa" stroke-width="2" />
-            <line
-                x1="100"
-                y1="100"
-                x2="100"
-                y2="22"
-                stroke="#f4f4f5"
-                stroke-width="6"
-                stroke-linecap="round"
-            />
+            <line x1="100" y1="100" x2="100" y2="22" stroke="#f4f4f5" stroke-width="6" stroke-linecap="round" />
             <line
                 x1="100"
                 y1="100"
