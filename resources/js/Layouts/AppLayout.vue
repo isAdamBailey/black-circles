@@ -1,4 +1,5 @@
 <script setup>
+import VinylRecordLogo from '@/Components/VinylRecordLogo.vue';
 import { Link } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -15,7 +16,7 @@ const flash = computed(() => page.props.flash ?? {});
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center gap-8">
                         <Link :href="route('home')" class="flex items-center gap-2">
-                            <img src="/images/logo.svg" alt="" class="h-8 w-8" />
+                            <VinylRecordLogo class="h-8 w-8" />
                             <span class="text-xl font-bold tracking-tight text-white">Black Circles</span>
                         </Link>
                         <div class="hidden sm:flex items-center gap-6">

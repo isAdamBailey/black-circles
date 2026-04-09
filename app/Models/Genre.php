@@ -18,4 +18,12 @@ class Genre extends Model
     {
         return static::orderBy('name')->pluck('name')->all();
     }
+
+    public static function orderedNamesInCollection(): array
+    {
+        return static::whereHas('releases', fn ($q) => $q->whereHas('collectionItem'))
+            ->orderBy('name')
+            ->pluck('name')
+            ->all();
+    }
 }

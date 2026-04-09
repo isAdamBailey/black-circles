@@ -1,5 +1,10 @@
 <?php
 
+$vibePollEnv = env('VIBE_POLL_TIMEOUT_SECONDS');
+$vibePollSeconds = ($vibePollEnv === null || $vibePollEnv === '')
+    ? 180
+    : (((int) $vibePollEnv >= 30) ? (int) $vibePollEnv : 180);
+
 return [
 
     'postmark' => [
@@ -30,6 +35,10 @@ return [
 
     'huggingface' => [
         'token' => env('HUGGINGFACE_API_TOKEN', ''),
+    ],
+
+    'vibe' => [
+        'poll_timeout_seconds' => $vibePollSeconds,
     ],
 
 ];

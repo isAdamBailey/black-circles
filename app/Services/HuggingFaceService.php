@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -17,9 +20,39 @@ class HuggingFaceService
 
     private const MAX_NEW_TOKENS = 150;
 
+    private const RERANK_MAX_NEW_TOKENS = 220;
+
     private const TIMEOUT = 90;
 
     private const CONNECT_TIMEOUT = 10;
+
+    private const RETRY_TIMES = 3;
+
+    private const RETRY_SLEEP_MS = 1000;
+
+    private function inferenceClient(): PendingRequest
+    {
+        $token = config('services.huggingface.token');
+
+        return Http::withToken($token)
+            ->connectTimeout(self::CONNECT_TIMEOUT)
+            ->timeout(self::TIMEOUT)
+            ->retry(
+                self::RETRY_TIMES,
+                self::RETRY_SLEEP_MS,
+                function ($exception): bool {
+                    if ($exception instanceof ConnectionException) {
+                        return true;
+                    }
+                    if ($exception instanceof RequestException && $exception->response) {
+                        return $exception->response->serverError();
+                    }
+
+                    return false;
+                },
+                false
+            );
+    }
 
     /**
      * Zero-shot classify text against candidate labels.
@@ -40,9 +73,7 @@ class HuggingFaceService
         }
 
         try {
-            $response = Http::withToken($token)
-                ->connectTimeout(self::CONNECT_TIMEOUT)
-                ->timeout(self::TIMEOUT)
+            $response = $this->inferenceClient()
                 ->post('https://router.huggingface.co/hf-inference/models/'.self::MODEL, [
                     'inputs' => $text,
                     'parameters' => [
@@ -108,26 +139,74 @@ class HuggingFaceService
     }
 
     /**
+     * @param  array<int, array{discogs_id: int, line: string}>  $numbered
+     * @return array<int>
+     */
+    public function rerankReleaseIdsForPrompt(string $userPrompt, array $numbered, int $want = 5): array
+    {
+        if ($numbered === []) {
+            return [];
+        }
+
+        $token = config('services.huggingface.token');
+        if (empty($token)) {
+            return [];
+        }
+
+        $lines = array_map(static fn (array $row): string => $row['line'], $numbered);
+        $body = implode("\n", $lines);
+        $encodedRequest = json_encode($userPrompt, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        $instruction = <<<PROMPT
+The listener asked for music matching this request: {$encodedRequest}
+
+Below are albums from their collection. Pick the {$want} that best fit the request, best match first.
+Reply with ONLY a comma-separated list of the numeric discogs_id values in order. No other words, labels, or punctuation beyond commas.
+
+{$body}
+PROMPT;
+
+        $raw = trim($this->generateText($instruction, self::RERANK_MAX_NEW_TOKENS));
+        if ($raw === '') {
+            return [];
+        }
+
+        preg_match_all('/\d+/', $raw, $matches);
+        $valid = array_map(static fn (array $row): int => (int) $row['discogs_id'], $numbered);
+        $validSet = array_flip($valid);
+        $ordered = [];
+        foreach ($matches[0] as $digits) {
+            $id = (int) $digits;
+            if (isset($validSet[$id]) && ! in_array($id, $ordered, true)) {
+                $ordered[] = $id;
+            }
+            if (count($ordered) >= $want) {
+                break;
+            }
+        }
+
+        return $ordered;
+    }
+
+    /**
      * Send a prompt to a text-generation model and return the generated string.
      * Returns an empty string on failure or when no token is configured.
      */
-    public function generateText(string $prompt): string
+    public function generateText(string $prompt, ?int $maxNewTokens = null): string
     {
+        $maxNewTokens = $maxNewTokens ?? self::MAX_NEW_TOKENS;
         $token = config('services.huggingface.token');
         if (empty($token)) {
             return '';
         }
 
         try {
-            $response = Http::withToken($token)
-                ->connectTimeout(self::CONNECT_TIMEOUT)
-                ->timeout(self::TIMEOUT)
+            $response = $this->inferenceClient()
                 ->post('https://router.huggingface.co/featherless-ai/v1/chat/completions', [
                     'model' => self::TEXT_GEN_MODEL,
                     'messages' => [
                         ['role' => 'user', 'content' => $prompt],
                     ],
-                    'max_tokens' => self::MAX_NEW_TOKENS,
+                    'max_tokens' => $maxNewTokens,
                 ]);
 
             if (! $response->successful()) {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Mood;
 use App\Models\Setting;
+use App\Services\AiSuggestionDispatchService;
 use App\Services\ReleaseSuggestionService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -12,7 +13,8 @@ use Inertia\Response;
 class MoodController extends Controller
 {
     public function __construct(
-        private ReleaseSuggestionService $releaseSuggestion
+        private ReleaseSuggestionService $releaseSuggestion,
+        private AiSuggestionDispatchService $aiSuggestionDispatch
     ) {}
 
     public function index(): Response
@@ -42,6 +44,23 @@ class MoodController extends Controller
         $genres = $moodModel->getGenreNames();
         $styles = $moodModel->getStyleNames();
         $excludeStyles = $moodModel->getExcludeStyleNames();
+
+        if (! empty(config('services.huggingface.token'))) {
+            return $this->aiSuggestionDispatch->begin(
+                $moodModel->aiPromptString(),
+                [
+                    'slug' => $moodModel->slug,
+                    'label' => $moodModel->label,
+                    'emoji' => $moodModel->emoji,
+                ],
+                [
+                    'genres' => $genres,
+                    'styles' => $styles,
+                    'exclude_styles' => $excludeStyles,
+                ]
+            );
+        }
+
         $pool = $this->releaseSuggestion->fetchMatchingReleases($genres, $styles, $excludeStyles, 5);
 
         if ($pool->isEmpty()) {
