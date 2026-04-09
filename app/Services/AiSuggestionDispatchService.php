@@ -18,7 +18,10 @@ class AiSuggestionDispatchService
     {
         $id = (string) Str::uuid();
         $cacheKey = VibeController::cacheKey($id);
-        Cache::put($cacheKey, ['status' => 'queued', 'queued_at' => time()], 600);
+        $pollTimeoutSeconds = max(1, (int) config('services.vibe.poll_timeout_seconds', 600));
+        $cacheTtlSeconds = $pollTimeoutSeconds + 30;
+
+        Cache::put($cacheKey, ['status' => 'queued', 'queued_at' => time()], $cacheTtlSeconds);
         ProcessVibeSuggestion::dispatch($cacheKey, $prompt, $moodForUi, $moodPresetTags);
 
         return redirect()->route('vibe.wait', $id);
