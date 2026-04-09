@@ -12,7 +12,6 @@ const shineId = `vinyl-shine-${uid}`;
     <span
         class="inline-flex items-center justify-center"
         :class="spinning ? 'vinyl-record--spin vinyl-record--glow' : ''"
-        role="img"
         aria-hidden="true"
     >
         <svg
