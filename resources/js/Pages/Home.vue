@@ -106,7 +106,10 @@ function submitVibe() {
                             class="flex-1 px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-gray-500 focus:ring-1 focus:ring-gray-500"
                             :disabled="processing"
                         />
-                        <PrimaryButton type="submit" :disabled="processing || !prompt.trim() || prompt.trim().length < 3">
+                        <PrimaryButton
+                            type="submit"
+                            :disabled="processing || !prompt.trim() || prompt.trim().length < 3"
+                        >
                             {{ processing ? 'Finding...' : 'Find it' }}
                         </PrimaryButton>
                     </form>
@@ -119,7 +122,9 @@ function submitVibe() {
                         <h2 class="text-xl font-semibold text-gray-300 mb-2">No collection synced yet</h2>
                         <p class="text-gray-500 mb-2">
                             Set
-                            <code class="text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded text-sm">DISCOGS_USERNAME</code>
+                            <code class="text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded text-sm"
+                                >DISCOGS_USERNAME</code
+                            >
                             in .env and run
                             <code class="text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded text-sm"
                                 >sail artisan discogs:sync</code
@@ -156,7 +161,6 @@ function submitVibe() {
                     </div>
                     <p class="text-gray-200 leading-relaxed whitespace-pre-line">{{ insight }}</p>
                 </div>
-
             </div>
         </div>
     </AppLayout>
