@@ -7,6 +7,7 @@ use App\Models\DiscogsRelease;
 use App\Models\Genre;
 use App\Models\Setting;
 use App\Models\Style;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -206,7 +207,7 @@ class DiscogsService
                         'folder_id' => $item['folder_id'] ?? null,
                         'rating' => $item['rating'] ?? null,
                         'notes' => $item['notes'] ?? null,
-                        'date_added' => isset($item['date_added']) ? \Carbon\Carbon::parse($item['date_added']) : null,
+                        'date_added' => isset($item['date_added']) ? Carbon::parse($item['date_added']) : null,
                     ]
                 );
 
