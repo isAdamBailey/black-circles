@@ -18,7 +18,8 @@ class VibeSuggestionService
     private const OUTPUT_COUNT = 5;
 
     public function __construct(
-        private HuggingFaceService $huggingFace,
+        private MoodKeywordMatcher $keywordMatcher,
+        private ReleaseRanker $ranker,
         private ReleaseSuggestionService $releases
     ) {}
 
@@ -40,7 +41,7 @@ class VibeSuggestionService
                 self::MERGED_CAP
             );
             if ($presetPool->isNotEmpty()) {
-                $ordered = $this->applyRerank($prompt, $presetPool);
+                $ordered = $this->ranker->rank($prompt, $presetPool, self::OUTPUT_COUNT);
 
                 return $this->composeSuggestionResponse($prompt, $ordered, $moodForUi);
             }
@@ -48,12 +49,10 @@ class VibeSuggestionService
 
         $allGenres = Genre::orderedNamesInCollection();
         $allStyles = Style::orderedNamesInCollection();
-        $labels = array_values(array_unique(array_merge($allGenres, $allStyles)));
 
         $tagPool = collect();
-        if (! empty($labels)) {
-            $scored = $this->huggingFace->classifyText($prompt, $labels);
-            $partitioned = $this->huggingFace->partitionLabels($scored, $allGenres, $allStyles);
+        if (! empty($allGenres) || ! empty($allStyles)) {
+            $partitioned = $this->keywordMatcher->matchTags($prompt, $allGenres, $allStyles);
             if (! empty($partitioned['genres']) || ! empty($partitioned['styles'])) {
                 $tagPool = $this->releases->fetchMatchingReleases(
                     $partitioned['genres'],
@@ -86,7 +85,7 @@ class VibeSuggestionService
             return null;
         }
 
-        $ordered = $this->applyRerank($prompt, $merged);
+        $ordered = $this->ranker->rank($prompt, $merged, self::OUTPUT_COUNT);
 
         return $this->composeSuggestionResponse($prompt, $ordered, $moodForUi);
     }
@@ -123,76 +122,5 @@ class VibeSuggestionService
             'primary' => $this->releases->formatRelease($primary),
             'backups' => $backups->map(fn (DiscogsRelease $r) => $this->releases->formatRelease($r))->all(),
         ];
-    }
-
-    /**
-     * @param  Collection<int, DiscogsRelease>  $merged
-     * @return Collection<int, DiscogsRelease>
-     */
-    private function applyRerank(string $prompt, Collection $merged): Collection
-    {
-        if ($merged->isEmpty()) {
-            return $merged;
-        }
-
-        $numbered = [];
-        $i = 1;
-        foreach ($merged as $release) {
-            $numbered[] = [
-                'discogs_id' => (int) $release->discogs_id,
-                'line' => $this->formatRerankLine($i, $release),
-            ];
-            $i++;
-        }
-
-        $ids = $this->huggingFace->rerankReleaseIdsForPrompt($prompt, $numbered, self::OUTPUT_COUNT);
-        if ($ids === []) {
-            return $merged->take(self::OUTPUT_COUNT)->values();
-        }
-
-        $byDiscogs = $merged->keyBy('discogs_id');
-        $picked = collect();
-        foreach ($ids as $discogsId) {
-            $r = $byDiscogs->get($discogsId);
-            if ($r) {
-                $picked->push($r);
-            }
-            if ($picked->count() >= self::OUTPUT_COUNT) {
-                break;
-            }
-        }
-
-        $pickedIds = $picked->pluck('discogs_id')->all();
-        foreach ($merged as $r) {
-            if ($picked->count() >= self::OUTPUT_COUNT) {
-                break;
-            }
-            if (! in_array($r->discogs_id, $pickedIds, true)) {
-                $picked->push($r);
-                $pickedIds[] = $r->discogs_id;
-            }
-        }
-
-        return $picked->take(self::OUTPUT_COUNT)->values();
-    }
-
-    private function formatRerankLine(int $index, DiscogsRelease $release): string
-    {
-        $genres = $release->relationLoaded('genres')
-            ? $release->genres->pluck('name')->implode(', ')
-            : '';
-        $styles = $release->relationLoaded('styles')
-            ? $release->styles->pluck('name')->implode(', ')
-            : '';
-        $tags = trim(implode('; ', array_filter([$genres, $styles])));
-
-        return sprintf(
-            '%d. %d | %s — %s | %s',
-            $index,
-            $release->discogs_id,
-            $release->artist ?? '',
-            $release->title ?? '',
-            $tags
-        );
     }
 }

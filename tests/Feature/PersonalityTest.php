@@ -6,13 +6,13 @@ use App\Models\Setting;
 use Illuminate\Support\Facades\Http;
 
 it('includes personality insight on the home page', function () {
-    Setting::set('personality_insight', 'Adam is a creative and introspective person who values depth.');
+    Setting::set('personality_insight', 'This collection reveals a listener who values depth and atmosphere.');
 
     $this->get(route('home'))
         ->assertStatus(200)
         ->assertInertia(fn ($page) => $page
             ->component('Home')
-            ->where('insight', 'Adam is a creative and introspective person who values depth.')
+            ->where('insight', 'This collection reveals a listener who values depth and atmosphere.')
         );
 });
 
@@ -31,7 +31,7 @@ it('personality:generate stores insight in settings', function () {
     Http::fake([
         'router.huggingface.co/*' => Http::response([
             'choices' => [
-                ['message' => ['content' => 'You are adventurous and open-minded.']],
+                ['message' => ['content' => 'This collection suggests an adventurous, open-minded listener.']],
             ],
         ], 200),
     ]);
@@ -44,7 +44,7 @@ it('personality:generate stores insight in settings', function () {
 
     $this->artisan('personality:generate')->assertExitCode(0);
 
-    expect(Setting::get('personality_insight'))->toBe('Adam is adventurous and open-minded.');
+    expect(Setting::get('personality_insight'))->toBe('This collection suggests an adventurous, open-minded listener.');
 });
 
 it('personality:generate skips when no huggingface token configured', function () {

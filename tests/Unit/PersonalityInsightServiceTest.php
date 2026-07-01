@@ -21,8 +21,8 @@ it('builds a prompt from top styles and genres', function () {
         ->and($prompt)->toContain('Ambient')
         ->and($prompt)->toContain('Rock')
         ->and($prompt)->toContain('Electronic')
-        ->and($prompt)->toContain('personality')
-        ->and($prompt)->toContain('Adam is a');
+        ->and($prompt)->toContain('this collection')
+        ->and($prompt)->not->toContain('Adam');
 });
 
 it('returns empty prompt when both styles and genres are empty', function () {
@@ -46,7 +46,7 @@ it('generates personality insight via huggingface text generation', function () 
     Http::fake([
         'router.huggingface.co/*' => Http::response([
             'choices' => [
-                ['message' => ['content' => 'You are a creative and introspective person.']],
+                ['message' => ['content' => 'This collection reveals a creative and introspective listener.']],
             ],
         ], 200),
     ]);
@@ -57,7 +57,25 @@ it('generates personality insight via huggingface text generation', function () 
         [['name' => 'Rock', 'count' => 3]]
     );
 
-    expect($result)->toBe('Adam is a creative and introspective person.');
+    expect($result)->toBe('This collection reveals a creative and introspective listener.');
+});
+
+it('trims a response that is cut off mid-sentence back to the last complete sentence', function () {
+    Http::fake([
+        'router.huggingface.co/*' => Http::response([
+            'choices' => [
+                ['message' => ['content' => 'This collection favors moody, atmospheric records. It suggests a listener who enjoys long, unhurried']],
+            ],
+        ], 200),
+    ]);
+
+    $service = app(PersonalityInsightService::class);
+    $result = $service->generatePersonalityInsight(
+        [['name' => 'Post-Punk', 'count' => 5]],
+        [['name' => 'Rock', 'count' => 3]]
+    );
+
+    expect($result)->toBe('This collection favors moody, atmospheric records.');
 });
 
 it('returns empty string when styles and genres are empty', function () {
