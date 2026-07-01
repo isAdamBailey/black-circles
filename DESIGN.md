@@ -12,6 +12,7 @@ colors:
   sleeve: "#e5e7eb"
   pressing: "#ffffff"
   oxblood: "#7c1f25"
+  oxblood-bright: "#c23a42"
   signal-success-bg: "#14532d"
   signal-success-text: "#86efac"
   signal-error-bg: "#450a0a"
@@ -23,6 +24,12 @@ typography:
     fontWeight: 700
     lineHeight: 1.1
     letterSpacing: "-0.02em"
+  subhead:
+    fontFamily: "Figtree, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1.5rem"
+    fontWeight: 700
+    lineHeight: 1.2
+    letterSpacing: "-0.01em"
   headline:
     fontFamily: "Figtree, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.25rem"
@@ -72,6 +79,14 @@ components:
     padding: "10px 24px"
   button-secondary-hover:
     backgroundColor: "{colors.groove}"
+  button-accent:
+    backgroundColor: "{colors.oxblood}"
+    textColor: "{colors.pressing}"
+    rounded: "{rounded.lg}"
+    padding: "12px 20px"
+    note: "Reserved for the mood-search 'Find it' button only — the app's one accent-bearing surface."
+  button-accent-hover:
+    backgroundColor: "{colors.oxblood-bright}"
   input-text:
     backgroundColor: "{colors.cabinet}"
     textColor: "{colors.pressing}"
@@ -108,7 +123,8 @@ This system explicitly rejects the energy of streaming platforms — rounded car
 A near-monochrome dark palette; the oxblood accent earns its place by appearing almost nowhere.
 
 ### Primary
-- **Oxblood** (`#7c1f25`): The sole accent. Used for active navigation states, focus rings, interactive highlights, and the occasional key label. Never on large surfaces. Never as a background. Its scarcity is the mechanism — when it appears, it signals.
+- **Oxblood** (`#7c1f25`): The sole accent. Its one earned surface is the "Find it" submit button on the mood-search form — the home page's single primary action. White text on this fill measures ~10:1, well past AA. Not used as a page/section background, not used on any other button; every other button on the app stays white/gray per the button tokens below.
+- **Oxblood Bright** (`#c23a42`): A lifted-lightness variant of Oxblood, used for the "Find it" button's hover state and for focus rings on that same button and its paired mood-search input. The base Oxblood measures ~2:1 against Void — below the 3:1 WCAG floor for UI components — so focus indicators use this brighter variant instead (~3.8:1 against Void; ~5.3:1 for white text on an Oxblood Bright hover fill). Not a second accent; same hue, lifted only where legibility on the near-black surface requires it.
 
 ### Neutral
 - **Void** (`#030712`): Body background. The darkest surface. Everything sits on top of this.
@@ -129,20 +145,23 @@ A near-monochrome dark palette; the oxblood accent earns its place by appearing 
 
 **The Rarity Rule.** Oxblood appears on ≤5% of any screen. One active nav link, one focus ring, one key label at most. If it appears twice on the same view, one instance is wrong.
 
+**The home-page exception.** The home page's action row ("Find it," "Random release," "Browse collection") is the one deliberate departure from the Rarity Rule — all three share the Oxblood/Oxblood Bright treatment as the page's signature color, not scattered one-offs. Every other page keeps strict rarity: Secondary buttons elsewhere stay Shelf/Groove, and Oxblood does not spread to the collection grid, auth pages, or nav.
+
 **The Contrast Mandate.** Body and supporting prose must use Label (`#9ca3af`) or brighter. Dust (`#6b7280`) is permitted only for non-content metadata — never running text.
 
 ## 3. Typography
 
-**Display / Body Font:** Figtree (400, 500, 600) — loaded from Bunny Fonts. A geometric-humanist sans-serif: clean enough for catalogue density, warm enough to not feel clinical.
+**Display / Body Font:** Figtree (400, 500, 600, 700) — loaded from Bunny Fonts. A geometric-humanist sans-serif: clean enough for catalogue density, warm enough to not feel clinical.
 
 **Character:** Single-family system. Hierarchy reads through weight (400 → 600 → 700) and color (Pressing → Label → Dust). No display serif pairing; the collection imagery provides all the visual richness the type doesn't need to add.
 
 ### Hierarchy
-- **Display** (700, clamp 2.25rem → 3rem, lh 1.1, ls -0.02em): Page titles only. Black Circles wordmark in the header is excluded (it's identity, not content).
+- **Display** (700, clamp 2.25rem → 3rem, lh 1.1, ls -0.02em): Page titles only. Black Circles wordmark in the header is excluded (it's identity, not content). Apply `text-wrap: balance` at this tier.
+- **Subhead** (700, 1.5rem / 24px, lh 1.2, ls -0.01em): The one tier between Display and Headline, reserved for a page's single promoted primary interaction that needs more weight than a Headline but isn't the page title — e.g. "Pick a mood" on the home page. Not for general section headings; use Headline for those.
 - **Headline** (600, 1.25rem / 20px, lh 1.3): Section headings, card group titles, major feature labels.
-- **Title** (600, 1.125rem / 18px, lh 1.4): Card headings, modal titles, in-page sub-sections.
-- **Body** (400, 1rem / 16px, lh 1.6): All prose content, release descriptions, personality insight text. Max line length 65–75ch.
-- **Label** (600, 0.75rem / 12px, ls 0.08em, uppercase): Metadata labels, status pills, AI-generated markers. Sparing use only — not on every element.
+- **Title** (600, 1.125rem / 18px, lh 1.4): Card headings, modal titles, in-page sub-sections. Fixed size — don't bump to Headline size at wider breakpoints; that blurs the two tiers.
+- **Body** (400, 1rem / 16px, lh 1.6): All prose content, release descriptions, personality insight text, inline hints and errors. Max line length 65–75ch. Never below 16px — a 14px "in-between" size reads as neither Body nor Label. Apply `text-wrap: pretty` on longer passages (2+ sentences).
+- **Label** (600, 0.75rem / 12px, ls 0.08em, uppercase): Metadata labels, status pills. Sparing use only — not on every element. Every Label-tier element uses the exact same size/weight/tracking; two adjacent eyebrows at different sizes is drift, not variation.
 
 ### Named Rules
 
@@ -154,7 +173,7 @@ A near-monochrome dark palette; the oxblood accent earns its place by appearing 
 
 This system is flat by design. Depth is expressed through tonal layering: void → cabinet → shelf → groove. No `box-shadow` at any tier. No blur or backdrop-filter decoratively. The collector's cabinet has no glass doors.
 
-Focus rings use the Groove border color (`#374151`) by default; interactive focus on accent-bearing elements uses Oxblood. Ring style: `outline: 2px solid; outline-offset: 2px`. No glow.
+Focus rings use the Groove border color (`#374151`) by default; the "Find it" button and its mood-search input (the app's one accent-bearing pairing) use Oxblood Bright (`#c23a42`) instead, since the base Oxblood fails 3:1 contrast against Void. Ring style: `outline: 2px solid; outline-offset: 2px`. No glow.
 
 ### Named Rules
 
@@ -163,11 +182,12 @@ Focus rings use the Groove border color (`#374151`) by default; interactive focu
 ## 5. Components
 
 ### Buttons
-- **Shape:** Gently curved edges (6px radius, `rounded-md`)
-- **Primary:** White surface (`#ffffff`) with void text (`#030712`), padding 10px 24px. Hover shifts to Sleeve (`#e5e7eb`). Used for single primary actions per view (e.g. "Random release").
-- **Secondary:** Shelf surface (`#1f2937`) with Pressing text, Jacket border (`#4b5563`). Hover shifts to Groove (`#374151`). Used for navigation CTAs ("Browse collection").
-- **Focus:** `outline: 2px solid #374151; outline-offset: 2px`
-- **Disabled:** 50% opacity. No pointer events. No style change beyond opacity.
+- **Shape:** Gently curved edges (6px radius, `rounded-md`; the accent CTA below uses `rounded-lg`)
+- **Primary:** White surface (`#ffffff`) with void text (`#030712`), padding 10px 24px. Hover shifts to Sleeve (`#e5e7eb`). Shared component (`PrimaryButton.vue`), used for form submissions across auth/profile pages.
+- **Secondary:** Shelf surface (`#1f2937`) with Pressing text, Jacket border (`#4b5563`). Hover shifts to Groove (`#374151`). The system default for navigation CTAs elsewhere in the app.
+- **Accent:** Oxblood surface (`#7c1f25`) with Pressing text, hover shifts to Oxblood Bright (`#c23a42`). Deliberately scoped to the home page's action row — "Find it," "Random release," "Browse collection" — where it reads as the page's own signature color rather than a single one-off signal. This is an intentional, page-scoped exception to the rarity rule below; it does not extend to Secondary buttons on other pages (collection grid, auth, profile), which stay on the Shelf/Groove treatment.
+- **Focus:** `outline: 2px solid #374151; outline-offset: 2px` by default; the Accent button and its paired input use Oxblood Bright instead.
+- **Disabled:** 50% opacity (Accent button: 40%, since Oxblood is already dark). No pointer events. No style change beyond opacity.
 - **Ghost / Destructive:** Not currently in the system. Add only if needed.
 
 ### Cards / Containers
@@ -215,6 +235,6 @@ Small horizontal bar at top of content area. Success: bg `#14532d`, text `#86efa
 - **Don't** put "AI" front and center in any UI copy or iconography. The intelligence is a concierge. It does not have a face.
 - **Don't** use `box-shadow` on any product surface. If you need depth, use a darker background tier.
 - **Don't** use uppercase tracking on elements above Label tier. The `tracking-widest uppercase text-xs` pattern is reserved for metadata stamps only.
-- **Don't** let the oxblood accent appear on backgrounds, large text, or more than one element per view. Its power comes from restraint.
+- **Don't** let the oxblood accent spread beyond the home page's action row ("Find it," "Random release," "Browse collection" and the mood-search input's focus state) — that trio is a deliberate, documented exception to rarity, not a precedent. Don't reuse it for other CTAs, badges, or large text on other pages.
 - **Don't** use Dust (`#6b7280`) for body text or any text the user needs to read. It fails 4.5:1 contrast against Void.
 - **Don't** introduce a second typeface. Figtree only.
