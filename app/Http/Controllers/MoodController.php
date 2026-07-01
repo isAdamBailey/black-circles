@@ -4,8 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Mood;
 use App\Models\Setting;
-use App\Services\AiSuggestionDispatchService;
-use App\Services\ReleaseSuggestionService;
+use App\Services\VibeSuggestionService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -13,8 +12,7 @@ use Inertia\Response;
 class MoodController extends Controller
 {
     public function __construct(
-        private ReleaseSuggestionService $releaseSuggestion,
-        private AiSuggestionDispatchService $aiSuggestionDispatch
+        private VibeSuggestionService $vibeSuggestion
     ) {}
 
     public function index(): Response
@@ -41,48 +39,24 @@ class MoodController extends Controller
             return redirect()->route('home');
         }
 
-        $genres = $moodModel->getGenreNames();
-        $styles = $moodModel->getStyleNames();
-        $excludeStyles = $moodModel->getExcludeStyleNames();
-
-        if (! empty(config('services.huggingface.token'))) {
-            return $this->aiSuggestionDispatch->begin(
-                $moodModel->aiPromptString(),
-                [
-                    'slug' => $moodModel->slug,
-                    'label' => $moodModel->label,
-                    'emoji' => $moodModel->emoji,
-                ],
-                [
-                    'genres' => $genres,
-                    'styles' => $styles,
-                    'exclude_styles' => $excludeStyles,
-                ]
-            );
-        }
-
-        $pool = $this->releaseSuggestion->fetchMatchingReleases($genres, $styles, $excludeStyles, 5);
-
-        if ($pool->isEmpty()) {
-            $pool = $this->releaseSuggestion->randomReleases(5);
-        }
-
-        if ($pool->isEmpty()) {
-            return redirect()->route('home')->with('error', 'Your collection is empty. Sync your Discogs collection to get suggestions.');
-        }
-
-        $primary = $pool->first();
-        $backups = $pool->skip(1)->values()->map(fn ($r) => $this->releaseSuggestion->formatRelease($r));
-        $primaryFormatted = $this->releaseSuggestion->formatRelease($primary);
-
-        return Inertia::render('Mood/Suggest', [
-            'mood' => [
-                'slug' => $moodKey,
+        $props = $this->vibeSuggestion->buildSuggestion(
+            $moodModel->aiPromptString(),
+            [
+                'slug' => $moodModel->slug,
                 'label' => $moodModel->label,
                 'emoji' => $moodModel->emoji,
             ],
-            'primary' => $primaryFormatted,
-            'backups' => $backups,
-        ]);
+            [
+                'genres' => $moodModel->getGenreNames(),
+                'styles' => $moodModel->getStyleNames(),
+                'exclude_styles' => $moodModel->getExcludeStyleNames(),
+            ]
+        );
+
+        if ($props === null) {
+            return redirect()->route('home')->with('error', 'Your collection is empty. Sync your Discogs collection to get suggestions.');
+        }
+
+        return Inertia::render('Mood/Suggest', $props);
     }
 }

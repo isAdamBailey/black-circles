@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 
 class PersonalityInsightService
 {
+    private const INSIGHT_MAX_NEW_TOKENS = 300;
+
     public function __construct(
         private HuggingFaceService $huggingFace
     ) {}
@@ -82,10 +84,13 @@ class PersonalityInsightService
 
         $musicDescription = implode(' ', $lines);
 
-        return "A person's music collection is dominated by the following. {$musicDescription} "
-            .'Based only on these musical preferences, describe their personality in 2-3 sentences. '
-            .'Be specific and insightful. Start the first sentence with "Adam is a". '
-            .'Write in third person about Adam. Do not add any preamble.';
+        return "A record collection is dominated by the following. {$musicDescription} "
+            .'Based only on these musical preferences, write a short paragraph (3-4 sentences) summarizing '
+            .'the overall vibe and character of this collection and what it suggests about the kind of listener '
+            .'who owns it. Synthesize an overall impression rather than listing the genres or styles back out by name. '
+            .'Do not use a specific name — refer to "this collection" or "this listener". '
+            .'Keep it concise and make sure the paragraph is a complete thought that does not trail off. '
+            .'Do not add any preamble.';
     }
 
     /**
@@ -99,17 +104,30 @@ class PersonalityInsightService
             return '';
         }
 
-        $insight = trim($this->huggingFace->generateText($prompt));
+        $insight = trim($this->huggingFace->generateText($prompt, self::INSIGHT_MAX_NEW_TOKENS));
 
         if ($insight === '') {
             return '';
         }
 
-        $insight = preg_replace('/^you are an\s+/i', 'Adam is an ', $insight, 1) ?? $insight;
-        $insight = preg_replace('/^you are a\s+/i', 'Adam is a ', $insight, 1) ?? $insight;
-        $insight = preg_replace('/^you are\s+/i', 'Adam is ', $insight, 1) ?? $insight;
-        $insight = preg_replace('/^adam is\s+/i', 'Adam is ', $insight, 1) ?? $insight;
+        return $this->trimToLastCompleteSentence($insight);
+    }
 
-        return $insight;
+    /**
+     * Guards against a mid-sentence cutoff regardless of the model's token budget:
+     * if the text doesn't end in terminal punctuation, drop the trailing incomplete sentence.
+     */
+    private function trimToLastCompleteSentence(string $text): string
+    {
+        if (preg_match('/[.!?]["\')]?$/', $text) === 1) {
+            return $text;
+        }
+
+        $boundaries = array_filter([strrpos($text, '.'), strrpos($text, '!'), strrpos($text, '?')], fn ($pos) => $pos !== false);
+        if ($boundaries === []) {
+            return $text;
+        }
+
+        return trim(substr($text, 0, max($boundaries) + 1));
     }
 }

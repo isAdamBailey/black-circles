@@ -7,7 +7,7 @@ A Laravel + Vue (Inertia.js) application to display, explore, and understand you
 ## Features
 
 - 🎵 **Sync your Discogs collection** by username — no auth required for public collections
-- 🤖 **AI mood search** — describe the music you want in plain English and get matched releases from your collection
+- 🎶 **Mood search** — describe the music you want in plain English and get matched releases from your collection
 - 🎭 **AI personality insight** — your top styles and genres are analysed to generate a personalised personality profile based on your taste
 - 💿 **Album grid** with cover art, filters, and Discogs marketplace pricing
 - 🎬 **Detail pages** with tracklist and YouTube preview embeds
@@ -18,9 +18,10 @@ Laravel 12 (PHP 8.3), Vue 3 + Inertia.js, Tailwind, MySQL 8.4, Meilisearch (Scou
 
 ## AI Models
 
+Mood and vibe search are matched locally (genre/style/title keyword matching), no AI involved.
+
 | Feature | Model |
 |---|---|
-| Mood search | `MoritzLaurer/deberta-v3-base-zeroshot-v2.0` — zero-shot text classification |
 | Personality insight | `Qwen/Qwen2.5-1.5B-Instruct` — instruction-tuned LLM |
 
 ## Running locally
@@ -44,7 +45,7 @@ Use the Sail binary (or a [`sail` shell alias](https://laravel.com/docs/sail#con
 ./vendor/bin/sail up -d
 ```
 
-This starts the app (`laravel.test`), MySQL, Meilisearch, and a **`queue`** container that runs `php artisan queue:work`. Natural-language vibe search and AI mood suggestions are queued; without a worker they will not finish.
+This starts the app (`laravel.test`), MySQL, Meilisearch, and a **`queue`** container that runs `php artisan queue:work` (currently idle — no background jobs are queued, but the worker is kept running for future use).
 
 ### 3. App setup
 
@@ -73,20 +74,12 @@ Until you sync, grids and AI suggestions have nothing to match against.
 |---|---|---|
 | `DISCOGS_USERNAME` | For automated / scheduled sync | Your public Discogs username; you can also pass username to `discogs:sync` |
 | `DISCOGS_TOKEN` | No | Improves Discogs rate limits — [discogs.com/settings/developers](https://www.discogs.com/settings/developers) |
-| `HUGGINGFACE_API_TOKEN` | No | **Vibe** search, AI **mood** picks, and **personality** insight — [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) (Read scope is enough) |
+| `HUGGINGFACE_API_TOKEN` | No | **Personality** insight — [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) (Read scope is enough) |
 | `VITE_GOOGLE_TAG_ID` | No | Google Analytics tag ID |
-
-Optional: `VIBE_POLL_TIMEOUT_SECONDS` (min 30 seconds when set) controls how long the wait page will poll before treating a stuck job as timed out.
 
 ### If you are not using this repo’s `docker-compose.yml`
 
-Run a queue worker in a second terminal so AI suggestions can complete:
-
-```bash
-./vendor/bin/sail artisan queue:work
-```
-
-Use a **shared** cache store (this project defaults to `CACHE_STORE=database`) for both the web container and the worker so vibe wait/poll state is visible everywhere.
+No queue worker is required — mood/vibe search run synchronously, and there are currently no queued background jobs.
 
 ## Syncing
 
