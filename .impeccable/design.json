@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-30T00:00:00Z",
+  "title": "Design System: Black Circles",
+  "extensions": {
+    "colorMeta": {
+      "void":               { "role": "neutral", "displayName": "Void",    "canonical": "oklch(7% 0.01 264)",   "tonalRamp": ["#030712","#080f20","#0e1730","#141f40","#1a2850","#223064","#2d3d7a","#3c508e"] },
+      "cabinet":            { "role": "neutral", "displayName": "Cabinet", "canonical": "oklch(17% 0.02 264)",  "tonalRamp": ["#0a0e1c","#0e1425","#111827","#16202f","#1c2a3e","#253348","#2e3e55","#3a4d66"] },
+      "shelf":              { "role": "neutral", "displayName": "Shelf",   "canonical": "oklch(24% 0.02 264)",  "tonalRamp": ["#111620","#161d2a","#1f2937","#26333e","#2e3d4a","#384958","#445669","#526478"] },
+      "groove":             { "role": "neutral", "displayName": "Groove",  "canonical": "oklch(31% 0.02 264)",  "tonalRamp": ["#1a2028","#20293392","#374151","#424e5e","#4e5c6c","#5c6c7d","#6e7f8f","#8292a2"] },
+      "jacket":             { "role": "neutral", "displayName": "Jacket",  "canonical": "oklch(39% 0.02 264)",  "tonalRamp": ["#252d38","#2f3845","#3a4453","#4b5563","#58636f","#67727d","#7a8490","#909aa5"] },
+      "dust":               { "role": "neutral", "displayName": "Dust",    "canonical": "oklch(50% 0.02 264)",  "tonalRamp": ["#363e4b","#424b58","#525d6b","#6b7280","#7a8190","#8c94a1","#a2aab5","#bcc3cc"] },
+      "label":              { "role": "neutral", "displayName": "Label",   "canonical": "oklch(69% 0.02 264)",  "tonalRamp": ["#5a6070","#6b717f","#7c8391","#9ca3af","#adb4be","#bec4cc","#d0d5dc","#e2e6ec"] },
+      "sleeve":             { "role": "neutral", "displayName": "Sleeve",  "canonical": "oklch(91% 0.01 264)",  "tonalRamp": ["#b0b4bc","#bec2c9","#cdd0d6","#d8dce2","#e5e7eb","#eeeff2","#f5f6f8","#fafbfc"] },
+      "pressing":           { "role": "neutral", "displayName": "Pressing","canonical": "oklch(100% 0 0)",      "tonalRamp": ["#c8cbcf","#d3d6da","#dfe2e6","#eaecef","#f3f4f6","#f8f9fa","#fcfcfd","#ffffff"] },
+      "oxblood":            { "role": "primary", "displayName": "Oxblood", "canonical": "oklch(32% 0.14 22)",   "tonalRamp": ["#3d0a0d","#561014","#6e161a","#7c1f25","#8f2a31","#a33840","#b84e57","#cc6a73"] }
+    },
+    "typographyMeta": {
+      "display":  { "displayName": "Display",  "purpose": "Page-level hero titles only." },
+      "headline": { "displayName": "Headline", "purpose": "Section headings, card group titles." },
+      "title":    { "displayName": "Title",    "purpose": "Card headings, modal titles, in-page sub-sections." },
+      "body":     { "displayName": "Body",     "purpose": "All prose content. Max 65–75ch line length." },
+      "label":    { "displayName": "Label",    "purpose": "Metadata stamps, status pills, AI-generated markers only." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "state",    "value": "150ms ease-out",                           "purpose": "Default for color/border state changes (hover, focus)." },
+      { "name": "scale",    "value": "transform 150ms cubic-bezier(0.4,0,0.2,1)","purpose": "Emoji/icon scale on mood tile hover." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Single primary CTA per view. White on void.",
+      "html": "<button class=\"ds-btn-primary\">Random release</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 24px; background: #ffffff; color: #030712; border: none; border-radius: 6px; font-family: Figtree, ui-sans-serif, sans-serif; font-size: 0.9375rem; font-weight: 600; line-height: 1; cursor: pointer; transition: background 150ms ease-out; } .ds-btn-primary:hover { background: #e5e7eb; } .ds-btn-primary:focus-visible { outline: 2px solid #374151; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Navigation CTAs, browse actions. Shelf surface with Jacket border.",
+      "html": "<button class=\"ds-btn-secondary\">Browse collection</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; padding: 10px 24px; background: #1f2937; color: #ffffff; border: 1px solid #4b5563; border-radius: 6px; font-family: Figtree, ui-sans-serif, sans-serif; font-size: 0.9375rem; font-weight: 600; line-height: 1; cursor: pointer; transition: background 150ms ease-out, border-color 150ms ease-out; } .ds-btn-secondary:hover { background: #374151; border-color: #6b7280; } .ds-btn-secondary:focus-visible { outline: 2px solid #374151; outline-offset: 2px; } .ds-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Search, vibe prompt, and form fields. Cabinet bg, Jacket border.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"e.g. dark moody post-punk…\" />",
+      "css": ".ds-input { width: 100%; padding: 12px 16px; background: #111827; color: #ffffff; border: 1px solid #4b5563; border-radius: 8px; font-family: Figtree, ui-sans-serif, sans-serif; font-size: 1rem; line-height: 1.5; transition: border-color 150ms ease-out, box-shadow 150ms ease-out; } .ds-input::placeholder { color: #6b7280; } .ds-input:focus { outline: none; border-color: #9ca3af; box-shadow: 0 0 0 1px #9ca3af; } .ds-input:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Navigation",
+      "kind": "nav",
+      "description": "Sticky top nav. Cabinet bg, Jacket border-bottom.",
+      "html": "<nav class=\"ds-nav\"><div class=\"ds-nav__brand\"><svg width=\"32\" height=\"32\" viewBox=\"0 0 32 32\" fill=\"none\"><circle cx=\"16\" cy=\"16\" r=\"14\" stroke=\"#ffffff\" stroke-width=\"2\"/><circle cx=\"16\" cy=\"16\" r=\"4\" fill=\"#ffffff\"/></svg><span class=\"ds-nav__wordmark\">Black Circles</span></div><div class=\"ds-nav__links\"><a class=\"ds-nav__link ds-nav__link--active\" href=\"#\">Collection</a></div></nav>",
+      "css": ".ds-nav { position: sticky; top: 0; z-index: 50; background: #111827; border-bottom: 1px solid #4b5563; } .ds-nav > div, .ds-nav__brand, .ds-nav__links { display: flex; align-items: center; } .ds-nav { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 64px; } .ds-nav__brand { gap: 8px; text-decoration: none; } .ds-nav__wordmark { color: #ffffff; font-family: Figtree, ui-sans-serif, sans-serif; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; } .ds-nav__links { gap: 24px; } .ds-nav__link { color: #9ca3af; font-family: Figtree, ui-sans-serif, sans-serif; font-size: 0.875rem; font-weight: 500; text-decoration: none; transition: color 150ms ease-out; } .ds-nav__link:hover { color: #ffffff; } .ds-nav__link--active { color: #ffffff; }"
+    },
+    {
+      "name": "Mood Tile",
+      "kind": "card",
+      "description": "Emoji-led square card for mood selection. Key interactive element on the home screen.",
+      "html": "<a class=\"ds-mood-tile\" href=\"#\"><span class=\"ds-mood-tile__emoji\">🌙</span><span class=\"ds-mood-tile__label\">Late Night</span></a>",
+      "css": ".ds-mood-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; aspect-ratio: 4/3; background: #111827; border: 2px solid #1f2937; border-radius: 16px; padding: 24px; text-align: center; text-decoration: none; cursor: pointer; transition: border-color 150ms ease-out, background 150ms ease-out; } .ds-mood-tile:hover { border-color: #374151; background: rgba(31,41,55,0.8); } .ds-mood-tile__emoji { font-size: 2.5rem; margin-bottom: 12px; display: block; transition: transform 150ms cubic-bezier(0.4,0,0.2,1); } .ds-mood-tile:hover .ds-mood-tile__emoji { transform: scale(1.1); } .ds-mood-tile__label { color: #ffffff; font-family: Figtree, ui-sans-serif, sans-serif; font-size: 1.125rem; font-weight: 600; line-height: 1.2; }"
+    },
+    {
+      "name": "Insight Panel",
+      "kind": "card",
+      "description": "AI-generated personality blurb. Cabinet surface, discreet header treatment.",
+      "html": "<div class=\"ds-insight\"><div class=\"ds-insight__header\"><span class=\"ds-insight__title\">Music personality</span><span class=\"ds-insight__badge\">AI generated</span></div><p class=\"ds-insight__body\">Your collection skews heavily toward late-night introspection — equal parts post-punk austerity and jazz-club warmth.</p></div>",
+      "css": ".ds-insight { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 24px; } .ds-insight__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; } .ds-insight__title { font-family: Figtree, ui-sans-serif, sans-serif; font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; } .ds-insight__badge { font-family: Figtree, ui-sans-serif, sans-serif; font-size: 0.6875rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; } .ds-insight__body { color: #e5e7eb; font-family: Figtree, ui-sans-serif, sans-serif; font-size: 1rem; line-height: 1.6; white-space: pre-line; margin: 0; }"
+    },
+    {
+      "name": "Flash / Alert",
+      "kind": "custom",
+      "description": "Success and error flash messages. Brief, dismissible, at top of content area.",
+      "html": "<div class=\"ds-flash ds-flash--success\">Collection synced — 247 releases imported.</div>",
+      "css": ".ds-flash { padding: 12px 16px; border-radius: 8px; font-family: Figtree, ui-sans-serif, sans-serif; font-size: 0.875rem; line-height: 1.5; } .ds-flash--success { background: #14532d; border: 1px solid #15803d; color: #86efac; } .ds-flash--error { background: #450a0a; border: 1px solid #991b1b; color: #fca5a5; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Specialist's Cabinet",
+    "overview": "Black Circles is a collector's display case — dark, purposeful, and slightly austere. Every surface is calibrated to recede so that album art and metadata can speak. The UI provides the frame; the records are the light source. Nothing decorates for its own sake.\n\nThe depth system is purely tonal: void (#030712) as the body, cabinet (#111827) for surfaces, shelf (#1f2937) for raised interactive elements. No shadows. No blur. The hierarchy reads through darkness, not through chrome. A single oxblood accent (#7c1f25) breaks the neutrals only where interaction demands it.\n\nThis system explicitly rejects streaming-platform energy and SaaS dashboard aesthetics. The AI inside the app is a quiet concierge. It should not be visible in the design at all.",
+    "keyCharacteristics": [
+      "Dark-field, tonal elevation — no shadows",
+      "One restrained accent color (oxblood), used sparingly",
+      "Density as an aesthetic choice, not a problem to solve",
+      "Album art is always the most prominent element on any given screen",
+      "Type is functional — one weight family, hierarchy through size and color only"
+    ],
+    "rules": [
+      { "name": "The Rarity Rule",       "body": "Oxblood appears on ≤5% of any screen. One active nav link, one focus ring, one key label at most.", "section": "colors" },
+      { "name": "The Contrast Mandate",  "body": "Body and supporting prose must use Label (#9ca3af) or brighter. Dust (#6b7280) is permitted only for non-content metadata — never running text.", "section": "colors" },
+      { "name": "The No-Pairing Rule",   "body": "Figtree only, at all times. Introducing a second family breaks the catalogue density the system is calibrated for.", "section": "typography" },
+      { "name": "The Uppercase Ceiling", "body": "Uppercase + wide tracking appears only on Label-tier elements (metadata stamps, status markers). Never on buttons, body text, or headings above 12px.", "section": "typography" },
+      { "name": "The No-Shadow Rule",    "body": "box-shadow is prohibited on all product surfaces. Elevation is expressed by background-color step, never by shadow.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do let album art be the most visually prominent element on any screen. Crop it square; give it space.",
+      "Do use tonal elevation (Cabinet → Shelf → Groove) to create depth. Never use box-shadow.",
+      "Do treat the Oxblood accent as a signal, not a style. One active state per view at most.",
+      "Do use Label (#9ca3af) as the minimum text color for any prose or supporting copy.",
+      "Do keep the AI invisible. No robot icons, no 'Powered by AI' labels.",
+      "Do embrace density. Let the catalogue be dense — that's what collectors love about Discogs."
+    ],
+    "donts": [
+      "Don't use Spotify-style visual language: rounded pill cards, green-tinted dark mode, algorithm-surfaced sections.",
+      "Don't apply a SaaS dashboard aesthetic: no sidebar navigation, no blue primary buttons, no metric cards, no border-left accent stripes on callouts.",
+      "Don't put AI front and center in any UI copy or iconography. The intelligence is a concierge. It does not have a face.",
+      "Don't use box-shadow on any product surface.",
+      "Don't use uppercase tracking on elements above Label tier (12px metadata stamps only).",
+      "Don't let the oxblood accent appear on backgrounds, large text, or more than one element per view.",
+      "Don't use Dust (#6b7280) for body text or any text the user needs to read. It fails 4.5:1 contrast against Void.",
+      "Don't introduce a second typeface. Figtree only."
+    ]
+  }
+}
