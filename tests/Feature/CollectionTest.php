@@ -106,3 +106,91 @@ it('provides releases as scrollable paginated data', function () {
             ->has('releases.links')
         );
 });
+
+it('filters releases by style', function () {
+    $postPunk = DiscogsRelease::factory()->withStyles(['Post-Punk'])->create();
+    $ambient = DiscogsRelease::factory()->withStyles(['Ambient'])->create();
+    DiscogsCollectionItem::factory()->for($postPunk, 'release')->create();
+    DiscogsCollectionItem::factory()->for($ambient, 'release')->create();
+
+    $this->get(route('collection.index', ['styles' => 'Post-Punk']))
+        ->assertStatus(200)
+        ->assertInertia(fn ($page) => $page
+            ->component('Collection/Index')
+            ->has('releases.data', 1)
+        );
+});
+
+it('renders the empty state when the collection has no results', function () {
+    $this->get(route('collection.index'))
+        ->assertStatus(200)
+        ->assertInertia(fn ($page) => $page
+            ->component('Collection/Index')
+            ->has('releases.data', 0)
+        );
+});
+
+it('sorts collection by year', function () {
+    $older = DiscogsRelease::factory()->create(['year' => 1975]);
+    $newer = DiscogsRelease::factory()->create(['year' => 2020]);
+    DiscogsCollectionItem::factory()->for($older, 'release')->create();
+    DiscogsCollectionItem::factory()->for($newer, 'release')->create();
+
+    $response = $this->get(route('collection.index', ['sort' => 'year', 'direction' => 'asc']));
+    $data = $response->inertiaProps('releases.data');
+
+    expect(collect($data)->pluck('year')->all())->toBe([1975, 2020]);
+});
+
+it('sorts collection by artist', function () {
+    $b = DiscogsRelease::factory()->create(['artist' => 'Bravo']);
+    $a = DiscogsRelease::factory()->create(['artist' => 'Alpha']);
+    DiscogsCollectionItem::factory()->for($b, 'release')->create();
+    DiscogsCollectionItem::factory()->for($a, 'release')->create();
+
+    $response = $this->get(route('collection.index', ['sort' => 'artist', 'direction' => 'asc']));
+    $data = $response->inertiaProps('releases.data');
+
+    expect(collect($data)->pluck('artist')->all())->toBe(['Alpha', 'Bravo']);
+});
+
+it('sorts collection by title', function () {
+    $b = DiscogsRelease::factory()->create(['title' => 'Beta Album']);
+    $a = DiscogsRelease::factory()->create(['title' => 'Alpha Album']);
+    DiscogsCollectionItem::factory()->for($b, 'release')->create();
+    DiscogsCollectionItem::factory()->for($a, 'release')->create();
+
+    $response = $this->get(route('collection.index', ['sort' => 'title', 'direction' => 'asc']));
+    $data = $response->inertiaProps('releases.data');
+
+    expect(collect($data)->pluck('title')->all())->toBe(['Alpha Album', 'Beta Album']);
+});
+
+it('sorts collection by date_added', function () {
+    $older = DiscogsRelease::factory()->create();
+    $newer = DiscogsRelease::factory()->create();
+    DiscogsCollectionItem::factory()->for($older, 'release')->create(['date_added' => now()->subYear()]);
+    DiscogsCollectionItem::factory()->for($newer, 'release')->create(['date_added' => now()]);
+
+    $response = $this->get(route('collection.index', ['sort' => 'date_added', 'direction' => 'asc']));
+    $data = $response->inertiaProps('releases.data');
+
+    expect(collect($data)->pluck('discogs_id')->all())->toBe([
+        $older->discogs_id,
+        $newer->discogs_id,
+    ]);
+});
+
+it('redirects home with an error when getting a random release from an empty collection', function () {
+    $this->get(route('collection.random'))
+        ->assertRedirect(route('home'))
+        ->assertSessionHas('error');
+});
+
+it('redirects to a release detail page for a random release', function () {
+    $release = DiscogsRelease::factory()->create();
+    DiscogsCollectionItem::factory()->for($release, 'release')->create();
+
+    $this->get(route('collection.random'))
+        ->assertRedirect(route('collection.show', $release->discogs_id));
+});
