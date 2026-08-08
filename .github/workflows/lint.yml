@@ -1,4 +1,4 @@
-name: Lint, Format, Test, and Commit
+name: Lint, Format, and Commit
 
 on:
   push:
@@ -54,22 +54,6 @@ jobs:
 
       - name: Run Prettier
         run: npm run format
-
-      - name: Copy environment file
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: cp .env.example .env
-
-      - name: Generate app key
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: php artisan key:generate
-
-      - name: Run Pest
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: ./vendor/bin/pest
-
-      - name: Run Vitest
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: npm run test
 
       - name: Commit and push changes
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

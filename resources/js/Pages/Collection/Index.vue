@@ -98,6 +98,18 @@ function toggleFilter(selected, value) {
     else selected.value.push(value);
 }
 
+// Vue auto-unwraps top-level refs referenced by name in template expressions,
+// so passing selectedGenres/selectedStyles directly to toggleFilter() from the
+// template hands it the unwrapped array instead of the ref. Route through
+// these wrappers, which read the refs from script scope instead.
+function toggleGenre(genre) {
+    toggleFilter(selectedGenres, genre);
+}
+
+function toggleStyle(style) {
+    toggleFilter(selectedStyles, style);
+}
+
 function clearFilters() {
     search.value = '';
     selectedGenres.value = [];
@@ -261,7 +273,7 @@ const releasesData = computed(() => props.releases?.data ?? []);
                                             ? 'bg-white text-black'
                                             : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
                                     "
-                                    @click="toggleFilter(selectedGenres, genre)"
+                                    @click="toggleGenre(genre)"
                                 >
                                     {{ genre }}
                                 </button>
@@ -279,7 +291,7 @@ const releasesData = computed(() => props.releases?.data ?? []);
                                             ? 'bg-white text-black'
                                             : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
                                     "
-                                    @click="toggleFilter(selectedStyles, style)"
+                                    @click="toggleStyle(style)"
                                 >
                                     {{ style }}
                                 </button>
