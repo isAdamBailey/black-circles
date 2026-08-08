@@ -6,6 +6,7 @@ use App\Models\DiscogsRelease;
 use App\Models\Genre;
 use App\Models\Setting;
 use App\Models\Style;
+use App\Services\CollectionQueryService;
 use App\Services\DiscogsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -29,40 +30,10 @@ class CollectionController extends Controller
         return redirect()->route('collection.show', $release->discogs_id);
     }
 
-    public function index(Request $request): Response
+    public function index(Request $request, CollectionQueryService $collectionQuery): Response
     {
-        $query = DiscogsRelease::query()
-            ->whereHas('collectionItem')
-            ->with('collectionItem');
-
-        if ($search = $request->get('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('artist', 'like', "%{$search}%")
-                    ->orWhere('label', 'like', "%{$search}%");
-            });
-        }
-
-        $query->whereHasGenres((array) $request->get('genres', []));
-        $query->whereHasStyles((array) $request->get('styles', []));
-
-        $sort = trim((string) $request->get('sort', 'value'));
-        $direction = in_array($request->get('direction'), ['asc', 'desc']) ? $request->get('direction') : 'desc';
-        $dirSql = $direction === 'desc' ? 'DESC' : 'ASC';
-
-        if ($sort === 'value') {
-            $query->reorder()->orderByRaw("CASE WHEN discogs_releases.lowest_price IS NULL THEN 1 ELSE 0 END ASC, discogs_releases.lowest_price {$dirSql}, discogs_releases.id ASC");
-        } elseif ($sort === 'year') {
-            $query->orderByRaw("CASE WHEN discogs_releases.year IS NULL OR discogs_releases.year = 0 THEN 1 ELSE 0 END ASC, discogs_releases.year {$dirSql}, discogs_releases.id ASC");
-        } elseif ($sort === 'artist') {
-            $query->orderBy('discogs_releases.artist', $direction);
-        } elseif ($sort === 'title') {
-            $query->orderBy('discogs_releases.title', $direction);
-        } else {
-            $query->join('discogs_collection_items', 'discogs_releases.discogs_id', '=', 'discogs_collection_items.discogs_release_id')
-                ->orderBy('discogs_collection_items.date_added', $direction)
-                ->select('discogs_releases.*');
-        }
+        $query = $collectionQuery->build($request);
+        [$sort, $direction] = $collectionQuery->sort($request);
 
         $allGenres = Genre::orderedNames();
         $allStyles = Style::orderedNames();
