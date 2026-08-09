@@ -9,8 +9,17 @@ Browser
   ▼
 nginx (single Forge site, existing domain/SSL unchanged)
   ├─ /api/*  →  PHP-FPM  →  Laravel (public/index.php)
-  └─ everything else  →  proxy_pass 127.0.0.1:3000  →  Node (Nuxt .output/server/index.mjs)
+  └─ everything else  →  proxy_pass 127.0.0.1:<port>  →  Node (Nuxt .output/server/index.mjs)
 ```
+
+**Don't assume `:3000` is free.** A prior migration on a shared Forge server
+([familytribute-base](https://github.com/isAdamBailey/familytribute-base))
+found `3000` and `3001` already occupied by unrelated processes (a PM2
+process and another Forge-managed daemon) — Forge/Supervisor won't warn you
+about a collision with something outside its own management, and the
+symptom is confusing (nginx reaches *something*, just not this app — see the
+troubleshooting table). **Check the server before picking a port** (step 2
+below), rather than defaulting to `3000`.
 
 This is Forge's standard, officially-documented pattern for Node.js apps — a
 Daemon running the Node process, with nginx `proxy_pass`ing to it — not a
@@ -39,12 +48,24 @@ Unchanged: Web Directory `/public`, PHP 8.3. Laravel still boots from
 
 ## 2. Add a Daemon for Nuxt (Forge → site → Daemons)
 
+**First, pick a free port.** SSH into the server and check what's already
+bound before assuming `3000` is available:
+
+```bash
+sudo ss -tlnp | grep -E ':(300[0-9]|301[0-9]|400[0-9])\b'
+```
+
+Pick the lowest port *not* listed in that output (start scanning from `3000`
+upward — `3002` is a reasonable first guess given the collisions found
+elsewhere, but verify, don't assume). Use that port everywhere `<port>`
+appears below, including in the nginx block in step 4.
+
 - **Directory:** `/home/forge/<domain>/frontend` — must be the `frontend`
   subfolder, not the site root, since the Command below is a relative path.
 - **User:** `forge`
 - **Command:**
   ```
-  env PORT=3000 NUXT_PUBLIC_API_BASE=https://<domain>/api/v1 bash deploy/start-nuxt.sh
+  env PORT=<port> NUXT_PUBLIC_API_BASE=https://<domain>/api/v1 bash deploy/start-nuxt.sh
   ```
 
 The leading `env` matters: Supervisor execs the command directly with no
@@ -116,13 +137,13 @@ location = /up {
 }
 
 location /_nuxt/ {
-    proxy_pass http://127.0.0.1:3000;
+    proxy_pass http://127.0.0.1:<port>;
     proxy_set_header Host $host;
     add_header Cache-Control "public, max-age=31536000, immutable";
 }
 
 location / {
-    proxy_pass http://127.0.0.1:3000;
+    proxy_pass http://127.0.0.1:<port>;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection 'upgrade';
@@ -173,13 +194,15 @@ Also enable Forge's **Scheduler** (weekly `discogs:sync` +
 
 - [ ] No leftover/duplicate Nuxt daemon from earlier troubleshooting
       (`sudo supervisorctl status` — exactly one).
-- [ ] Daemon created (step 2), `PORT=3000` and `NUXT_PUBLIC_API_BASE` on the
+- [ ] Verified `<port>` is actually free on the server before using it
+      (`sudo ss -tlnp | grep :<port>`), not just assumed.
+- [ ] Daemon created (step 2), `PORT=<port>` and `NUXT_PUBLIC_API_BASE` on the
       Command line, Directory = `frontend/`.
 - [ ] Daemon manually started once and confirmed `RUNNING`.
 - [ ] Deploy Script updated (step 3) with the correct
       `supervisorctl restart daemon-<id>` program name.
 - [ ] Nginx edited (step 4) — `/api` and `/up` to PHP-FPM, `/` (and
-      `/_nuxt/`) proxied to `127.0.0.1:3000`.
+      `/_nuxt/`) proxied to `127.0.0.1:<port>` (same port as the daemon).
 - [ ] Env vars set (step 5).
 - [ ] `queue:work` daemon and Scheduler enabled.
 - [ ] Deploy, then smoke-test:
@@ -198,7 +221,7 @@ Also enable Forge's **Scheduler** (weekly `discogs:sync` +
 2. Revert nginx to the default catch-all (`location / { try_files ... }`),
    or to whatever the pre-cutover Inertia config was.
 3. Stop the Nuxt daemon — the rolled-back deploy serves pages via Inertia/PHP
-   again, so nothing should be listening on 3000.
+   again, so nothing app-specific should be listening on `<port>`.
 
 ## Troubleshooting reference
 
@@ -208,5 +231,7 @@ Also enable Forge's **Scheduler** (weekly `discogs:sync` +
 | `BACKOFF: Exited too quickly` | `.output/` doesn't exist yet | Run a full deploy first (step 3 builds it), *then* start the daemon |
 | `ERROR (spawn error)` | Daemon never successfully started, or is in a broken state | Manually click Start on the daemon in Forge's UI and confirm `RUNNING` |
 | `bash: deploy/start-nuxt.sh: No such file or directory` | Daemon's Directory is the site root, not `.../frontend` | Fix Directory to `/home/forge/<domain>/frontend`; confirm with `ls` |
-| `nginx 502 Bad Gateway` | Nothing listening on port 3000 (daemon down, or nginx not reloaded after a config edit) | `sudo supervisorctl status`; `sudo nginx -t && sudo service nginx reload` |
+| `nginx 502 Bad Gateway` | Nothing listening on `<port>` (daemon down, or nginx not reloaded after a config edit) | `sudo supervisorctl status`; `sudo nginx -t && sudo service nginx reload` |
+| `EADDRINUSE: address already in use 127.0.0.1:<port>` | Two processes trying to bind the same port — either a duplicate daemon for this site, or another site/process already using it | `sudo supervisorctl status` for duplicates of this site's daemon (delete the extra); `sudo ss -tlnp \| grep :<port>` to check for unrelated occupants before assuming a port is free |
+| Site loads but shows unrelated/garbled content, or another app entirely | Port collision — nginx reached *something* on `<port>`, just not this app (another site or an unrelated process, e.g. PM2) | `sudo ss -tlnp \| grep :<port>` to see what's actually there; pick a different, verified-free port instead (redo steps 2 and 4 with the new port) |
 | `npm ci` / deploy ends with `Killed` | OOM during the frontend build | Add swap on the Forge server, or lower `NODE_OPTIONS=--max-old-space-size` |
