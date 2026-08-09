@@ -125,15 +125,23 @@ auto-start a brand-new daemon.
 Replace the existing script (it still has `npm run build`/Vite steps for the
 removed Inertia frontend).
 
-**If this site has Zero Downtime Deployment enabled** (Forge's deploy log
-says `=> Creating new release` / clones into `releases/<id>`), Forge already
-clones the repo into the new release directory *and* runs the deploy script
-from inside it — don't `cd` to the site root or `git pull` yourself; both
-are not just unneeded but actively wrong (the site root path may not exist
-yet as a symlink on a first deploy, and re-pulling on top of a fresh clone
-is redundant):
+**This site has Zero Downtime Deployment enabled** (Forge's own
+`$CREATE_RELEASE()`/`$ACTIVATE_RELEASE()`/`$RESTART_QUEUES()` helper
+functions appear in the script editor; the deploy log says
+`=> Creating new release` / clones into `releases/<id>`). `$CREATE_RELEASE()`
+clones the repo into the new release directory and puts you there — don't
+`cd` to the site root or `git pull` yourself, both are redundant.
+`$ACTIVATE_RELEASE()` does the atomic symlink swap that makes
+`/home/forge/<domain>` (and the Daemon's Directory, which points at
+`/home/forge/<domain>/frontend`) resolve to this new release. **The daemon
+restart must come after that swap**, not before — restarting earlier re-execs
+`start-nuxt.sh` while the symlink still points at the *previous* release (or
+nothing, on a first deploy), so it'd crash-loop or serve stale code instead
+of what was just built:
 
 ```bash
+$CREATE_RELEASE()
+
 $FORGE_COMPOSER install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
 $FORGE_PHP artisan migrate --force
@@ -147,18 +155,28 @@ cd frontend
 npm ci
 set -a; source ../.env; set +a
 npm run build
+cd ..
+
+$ACTIVATE_RELEASE()
+
+$RESTART_QUEUES()
 
 sudo supervisorctl restart daemon-<id>:*
 ```
 
-**If Zero Downtime Deployment is *not* enabled** (standard deploy, no
-`releases/` directories), prepend the two lines it would otherwise skip:
+**If a different site does *not* have Zero Downtime Deployment enabled**
+(standard deploy, no `releases/` directories, no `$CREATE_RELEASE()`/
+`$ACTIVATE_RELEASE()` in the script editor), use `cd`/`git pull` instead,
+and the daemon restart ordering concern above doesn't apply since there's no
+symlink swap:
 
 ```bash
 cd /home/forge/<domain>
 git pull origin $FORGE_SITE_BRANCH
 
 $FORGE_COMPOSER install ...
+# ...same as above...
+sudo supervisorctl restart daemon-<id>:*
 ```
 
 Forge names each daemon `daemon-<id>` (a numeric id it assigns once the
@@ -272,8 +290,9 @@ Also enable Forge's **Scheduler** (weekly `discogs:sync` +
       Command line, Directory = `frontend/`.
 - [ ] Daemon manually started once and confirmed `RUNNING`.
 - [ ] Deploy Script updated (step 3) with the correct
-      `supervisorctl restart daemon-<id>` program name and the
-      `source ../.env` line before `npm run build`.
+      `supervisorctl restart daemon-<id>` program name, the `source ../.env`
+      line before `npm run build`, and (if Zero Downtime Deployment is
+      enabled) the daemon restart placed *after* `$ACTIVATE_RELEASE()`.
 - [ ] Nginx edited (step 4) — `/api` and `/up` to PHP-FPM, `/` (and
       `/_nuxt/`) proxied to `127.0.0.1:3004` (same port as the daemon).
 - [ ] Env vars set (step 5).
