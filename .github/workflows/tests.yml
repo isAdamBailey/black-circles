@@ -172,3 +172,93 @@ jobs:
       - name: Stop Sail
         if: always()
         run: ./vendor/bin/sail down
+
+  e2e-nuxt:
+    name: E2E (Playwright, Nuxt)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_mysql
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install root npm dependencies
+        run: npm ci
+
+      - name: Install frontend npm dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Configure environment for e2e
+        run: |
+          echo "DISCOGS_USERNAME=e2e-test-user" >> .env
+          echo "SCOUT_DRIVER=collection" >> .env
+          echo "FRONTEND_URL=http://localhost:3000" >> .env
+
+      - name: Generate app key
+        run: php artisan key:generate
+
+      - name: Start Sail
+        run: ./vendor/bin/sail up -d --wait
+
+      - name: Migrate and seed
+        run: |
+          ./vendor/bin/sail artisan migrate --force
+          ./vendor/bin/sail artisan db:seed --class="Database\Seeders\E2eSeeder" --force
+
+      - name: Generate Nuxt static build
+        working-directory: frontend
+        run: npm run generate
+
+      - name: Serve Nuxt build
+        working-directory: frontend
+        run: npx serve -s .output/public -l 3000 &
+
+      - name: Wait for Nuxt server
+        run: npx wait-on http://localhost:3000
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright against Nuxt
+        run: npm run test:e2e:nuxt
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-nuxt
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Stop Sail
+        if: always()
+        run: ./vendor/bin/sail down

@@ -58,6 +58,14 @@ async function mountCollection() {
   return wrapper
 }
 
+async function mountCollectionAt(route: string) {
+  const wrapper = await mountSuspended(CollectionIndexPage, { route })
+  await flushPromises()
+
+  mountedWrapper = wrapper
+  return wrapper
+}
+
 describe('collection index page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -104,25 +112,32 @@ describe('collection index page', () => {
     })
   })
 
+  it('seeds the genre filter from the URL query (deep-linked from a release page)', async () => {
+    mockCollection()
+
+    await mountCollectionAt('/collection?genres[]=Rock')
+
+    expect(getMock).toHaveBeenCalledWith('/collection', {
+      query: { sort: 'value', direction: 'desc', page: 1, 'genres[]': ['Rock'] },
+    })
+  })
+
   it('debounces search input and fetches autocomplete suggestions', async () => {
-    vi.useFakeTimers()
     mockCollection()
 
     const wrapper = await mountCollection()
 
     await wrapper.get('input[type="text"]').setValue('Pink')
-
-    await vi.advanceTimersByTimeAsync(400)
+    await new Promise((resolve) => setTimeout(resolve, 450))
     await flushPromises()
 
     expect(getMock).toHaveBeenLastCalledWith('/collection', {
       query: { sort: 'value', direction: 'desc', page: 1, search: 'Pink' },
     })
     expect(getMock).toHaveBeenCalledWith('/collection/search', { query: { q: 'Pink' } })
-  })
+  }, 10000)
 
   it('navigates to a release when a suggestion is selected', async () => {
-    vi.useFakeTimers()
     getMock.mockImplementation((path: string) => {
       if (path === '/collection') return Promise.resolve(collectionResponse())
       if (path === '/collection/search') {
@@ -134,13 +149,13 @@ describe('collection index page', () => {
     const wrapper = await mountCollection()
 
     await wrapper.get('input[type="text"]').setValue('Pink Fl')
-    await vi.advanceTimersByTimeAsync(150)
+    await new Promise((resolve) => setTimeout(resolve, 200))
     await flushPromises()
 
     await wrapper.get('button.w-full.flex.items-center').trigger('click')
 
     expect(navigateToMock).toHaveBeenCalledWith('/collection/999')
-  })
+  }, 10000)
 
   it('loads more releases on click', async () => {
     mockCollection({
