@@ -36,6 +36,39 @@ server-side. `nuxt build` (not `generate`) still produces a Node server
 (`.output/server/index.mjs`) that does this, run as a Forge Daemon — see
 `frontend/deploy/start-nuxt.sh`.
 
+### Zero-downtime deployments (confirmed against Forge's docs)
+
+This site uses Forge's **zero-downtime deployment** strategy (new sites
+default to it; per [Forge's
+docs](https://forge.laravel.com/docs/sites/deployments), it's mandatory and
+non-configurable for Nuxt.js/Next.js sites specifically). Key facts, from the
+docs rather than guesswork:
+
+- `$CREATE_RELEASE()` clones the repo into a new `releases/<id>` directory.
+  Forge then **automatically inserts `cd $FORGE_RELEASE_DIRECTORY` right
+  after it** — every command placed after `$CREATE_RELEASE()` in the script
+  already runs from inside the new release, no manual `cd` needed.
+- `$ACTIVATE_RELEASE()` atomically symlinks **`/home/forge/<domain>/current`**
+  → the new release directory. This is the stable path — `current`, not the
+  site root itself. `/home/forge/<domain>` is just the site's root folder
+  (containing `current/`, `releases/`, the shared `.env`, etc.); it is
+  **never** itself a symlink to the active release.
+- `$RESTART_QUEUES()` restarts queue workers (and Horizon, if used).
+- Relevant env vars Forge injects into the deploy script: `FORGE_RELEASE_DIRECTORY`
+  (path of the new release being deployed), `FORGE_SITE_PATH`
+  (`/home/forge/<domain>/current`), `FORGE_SITE_ROOT` (`/home/forge/<domain>`).
+- PHP-FPM does **not** need reloading on zero-downtime deploys — every
+  deployment lands in a fresh, uncached directory.
+- Any background-process restart (our Nuxt daemon included) **must** be
+  placed after `$ACTIVATE_RELEASE()`, so it picks up the newly-activated
+  code, not the previous release.
+
+**Consequence for the Nuxt Daemon (step 2): its Directory must be
+`/home/forge/<domain>/current/frontend`**, not
+`/home/forge/<domain>/frontend` — the daemon runs outside the deploy script
+(via Supervisor), so it can't see `$FORGE_RELEASE_DIRECTORY`; it needs the
+stable `current` symlink instead.
+
 ## 0. Order of operations — do this *before* merging the cutover PR
 
 **Merging the Phase 5 PR (#14) and letting Forge auto-deploy it immediately
@@ -57,8 +90,10 @@ merged only once that's confirmed:
 1. Temporarily disable **Push to deploy** on the site (Deployments tab) so an
    unrelated push doesn't trigger a deploy mid-setup.
 2. SSH in and manually build the frontend against current `main`:
-   `cd /home/forge/<domain>/frontend && npm ci && npm run build`. Proves the
-   build works before anything is wired up.
+   `cd /home/forge/<domain>/current/frontend && npm ci && npm run build`
+   (only possible once at least one deploy has succeeded and `current`
+   exists — see the brand-new-site note below otherwise). Proves the build
+   works before anything is wired up.
 3. Step 2 below (create + start the Daemon on port `3004`, confirm
    `RUNNING`, `curl 127.0.0.1:3004` from the server). This only talks to
    the daemon directly — nginx and real users aren't affected yet.
@@ -98,8 +133,10 @@ Uses port `3004` (confirmed free on this server). If that ever needs to
 change, double-check first with `sudo ss -tlnp | grep :3004` before reusing
 or reassigning it.
 
-- **Directory:** `/home/forge/<domain>/frontend` — must be the `frontend`
-  subfolder, not the site root, since the Command below is a relative path.
+- **Directory:** `/home/forge/<domain>/current/frontend` — the `current`
+  symlink (not the bare site root — see the zero-downtime notes above)
+  pointing at the active release's `frontend` subfolder, since the Command
+  below is a relative path.
 - **User:** `forge`
 - **Command:**
   ```
@@ -129,27 +166,36 @@ removed Inertia frontend).
 `$CREATE_RELEASE()`/`$ACTIVATE_RELEASE()`/`$RESTART_QUEUES()` helper
 functions appear in the script editor; the deploy log says
 `=> Creating new release` / clones into `releases/<id>`). `$CREATE_RELEASE()`
-clones the repo into the new release directory and puts you there — don't
-`cd` to the site root or `git pull` yourself, both are redundant.
+clones the repo into a new `releases/<id>` directory and sets
+`$FORGE_RELEASE_DIRECTORY` to its path.
+
+**Forge's docs claim a `cd $FORGE_RELEASE_DIRECTORY` is automatically
+inserted right after `$CREATE_RELEASE()` — confirmed by direct testing on
+this site that it is *not* actually happening** (a diagnostic `pwd` placed
+immediately after `$CREATE_RELEASE()` printed `/home/forge`, not the release
+path, even though `$FORGE_RELEASE_DIRECTORY` itself resolved correctly). So
+`cd "$FORGE_RELEASE_DIRECTORY"` is added explicitly below — don't rely on
+the documented auto-`cd`. Don't `cd` to the site root or `git pull` either;
+the repo is already freshly cloned into the release directory.
+
 `$ACTIVATE_RELEASE()` does the atomic symlink swap that makes
-`/home/forge/<domain>` (and the Daemon's Directory, which points at
-`/home/forge/<domain>/frontend`) resolve to this new release. **The daemon
-restart must come after that swap**, not before — restarting earlier re-execs
-`start-nuxt.sh` while the symlink still points at the *previous* release (or
-nothing, on a first deploy), so it'd crash-loop or serve stale code instead
-of what was just built:
+`/home/forge/<domain>/current` (and the Daemon's Directory, which points at
+`/home/forge/<domain>/current/frontend`) resolve to this new release. **The
+daemon restart must come after that swap**, not before — restarting earlier
+re-execs `start-nuxt.sh` while `current` still points at the *previous*
+release (or nothing, on a first deploy), so it'd crash-loop or serve stale
+code instead of what was just built:
 
 ```bash
 $CREATE_RELEASE()
+
+cd "$FORGE_RELEASE_DIRECTORY"
 
 $FORGE_COMPOSER install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
 $FORGE_PHP artisan migrate --force
 $FORGE_PHP artisan config:cache
 $FORGE_PHP artisan route:cache
-$FORGE_PHP artisan queue:restart
-
-( flock -w 10 9 || exit 1; echo 'Restarting FPM...'; sudo -S service $FORGE_PHP_FPM reload ) 9>/tmp/fpmlock
 
 cd frontend
 npm ci
@@ -163,6 +209,11 @@ $RESTART_QUEUES()
 
 sudo supervisorctl restart daemon-<id>:*
 ```
+
+No FPM reload and no separate `artisan queue:restart` here — per Forge's
+docs, FPM reload is unnecessary for zero-downtime deploys (every deployment
+lands in a fresh, uncached directory), and `$RESTART_QUEUES()` already
+handles queue workers (and Horizon, if used).
 
 **If a different site does *not* have Zero Downtime Deployment enabled**
 (standard deploy, no `releases/` directories, no `$CREATE_RELEASE()`/
@@ -327,7 +378,7 @@ Also enable Forge's **Scheduler** (weekly `discogs:sync` +
 | `FATAL can't find command 'NUXT_PUBLIC_API_BASE=...'` | Supervisor execs the command directly, no shell | Prefix the whole command with `env` (step 2) |
 | `BACKOFF: Exited too quickly` | `.output/` doesn't exist yet | Run a full deploy first (step 3 builds it), *then* start the daemon |
 | `ERROR (spawn error)` | Daemon never successfully started, or is in a broken state | Manually click Start on the daemon in Forge's UI and confirm `RUNNING` |
-| `bash: deploy/start-nuxt.sh: No such file or directory` | Daemon's Directory is the site root, not `.../frontend` | Fix Directory to `/home/forge/<domain>/frontend`; confirm with `ls` |
+| `bash: deploy/start-nuxt.sh: No such file or directory` | Daemon's Directory is wrong — the bare site root, or missing `current/`, or missing `/frontend` | Fix Directory to `/home/forge/<domain>/current/frontend`; confirm with `ls` |
 | `nginx 502 Bad Gateway` | Nothing listening on `3004` (daemon down, or nginx not reloaded after a config edit) | `sudo supervisorctl status`; `sudo nginx -t && sudo service nginx reload` |
 | `EADDRINUSE: address already in use 127.0.0.1:3004` | Two processes trying to bind the same port — either a duplicate daemon for this site, or another site/process already using it | `sudo supervisorctl status` for duplicates of this site's daemon (delete the extra); `sudo ss -tlnp \| grep :3004` to check for unrelated occupants before assuming a port is free |
 | Site loads but shows unrelated/garbled content, or another app entirely | Port collision — nginx reached *something* on `3004`, just not this app (another site or an unrelated process, e.g. PM2) | `sudo ss -tlnp \| grep :3004` to see what's actually there; pick a different, verified-free port instead (redo steps 2 and 4 with the new port) |
