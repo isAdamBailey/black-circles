@@ -2,11 +2,19 @@
 import type { ApiEnvelope, CollectionIndex, SearchSuggestion } from '~/types/api'
 
 const { get } = useApi()
+const route = useRoute()
 
+function ensureArray(value: string | string[] | undefined): string[] {
+  if (!value) return []
+  return Array.isArray(value) ? value : [value]
+}
+
+// Release detail links (genre/style chips) deep-link here via ?genres[]=…
+// or ?styles[]=…, seeding the filters on first load only.
 const search = ref('')
 const debouncedSearch = ref('')
-const selectedGenres = ref<string[]>([])
-const selectedStyles = ref<string[]>([])
+const selectedGenres = ref<string[]>(ensureArray(route.query['genres[]'] as string | string[] | undefined))
+const selectedStyles = ref<string[]>(ensureArray(route.query['styles[]'] as string | string[] | undefined))
 const sort = ref('value')
 const direction = ref<'asc' | 'desc'>('desc')
 const showFilters = ref(false)

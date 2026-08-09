@@ -10,7 +10,8 @@
         "format": "prettier --write resources/js",
         "format:check": "prettier --check resources/js",
         "test": "vitest run",
-        "test:e2e": "playwright test"
+        "test:e2e": "playwright test",
+        "test:e2e:nuxt": "playwright test --config=playwright.nuxt.config.ts"
     },
     "dependencies": {
         "axios": "^1.11.0",

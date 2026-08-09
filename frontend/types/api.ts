@@ -23,6 +23,27 @@ export interface ReleaseSummary {
   collection_item?: CollectionItemSummary | null
 }
 
+export interface ReleaseImage {
+  uri?: string
+}
+
+export interface ReleaseFormat {
+  name: string
+}
+
+export interface ReleaseTrack {
+  position?: string
+  title: string
+  duration?: string
+  type_?: string
+}
+
+export interface ReleaseVideo {
+  uri: string
+  title?: string
+  embed?: boolean
+}
+
 export interface Release {
   discogs_id: number
   title: string
@@ -32,10 +53,10 @@ export interface Release {
   year: number | null
   cover_image: string | null
   thumb: string | null
-  images: unknown
-  formats: unknown
-  tracklist: unknown
-  videos: unknown
+  images: Array<ReleaseImage | string> | null
+  formats: ReleaseFormat[] | null
+  tracklist: ReleaseTrack[] | null
+  videos: ReleaseVideo[] | null
   lowest_price: string | null
   median_price: string | null
   highest_price: string | null
