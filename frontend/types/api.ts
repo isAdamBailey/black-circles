@@ -94,6 +94,14 @@ export interface CollectionIndex {
   lastSynced: string | null
 }
 
+export interface SearchSuggestion {
+  id: number
+  discogs_id: number
+  title: string
+  artist: string
+  thumb: string | null
+}
+
 export interface ApiEnvelope<T> {
   data: T
 }
