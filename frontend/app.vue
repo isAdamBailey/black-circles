@@ -1,27 +1,35 @@
 <script setup lang="ts">
-import type { HomeData } from '~/types/api'
+const appName = 'Black Circles'
+const description =
+  "Discover music from Adam's vinyl collection. Pick a mood and get suggestions from Adam's Discogs collection."
 
-const { get } = useApi()
-
-const { data: home, error } = await useAsyncData('home-scaffold-check', () =>
-  get<HomeData>('/home'),
-)
+useHead({
+  htmlAttrs: { lang: 'en' },
+  bodyAttrs: { class: 'font-sans antialiased' },
+  title: appName,
+  titleTemplate: (title) => (title && title !== appName ? `${title} - ${appName}` : appName),
+  meta: [
+    { name: 'description', content: description },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:title', content: appName },
+    { property: 'og:description', content: description },
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:title', content: appName },
+    { name: 'twitter:description', content: description },
+  ],
+  link: [
+    { rel: 'icon', type: 'image/svg+xml', href: '/images/logo.svg' },
+    { rel: 'preconnect', href: 'https://fonts.bunny.net' },
+    {
+      rel: 'stylesheet',
+      href: 'https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap',
+    },
+  ],
+})
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center px-6 text-center font-sans">
-    <div>
-      <h1 class="text-2xl font-semibold">Black Circles — Nuxt scaffold</h1>
-      <p class="mt-2 text-label">
-        Pages ship in Phase 4. This confirms the API client reaches
-        <code class="text-sleeve">/api/v1/home</code>.
-      </p>
-      <p v-if="home" class="mt-4 text-sleeve">
-        Loaded {{ home.moods.length }} moods from the API.
-      </p>
-      <p v-else-if="error" class="mt-4 text-signal-error-text">
-        Could not reach the API: {{ error.message }}
-      </p>
-    </div>
-  </div>
+  <NuxtLayout>
+    <NuxtPage />
+  </NuxtLayout>
 </template>
