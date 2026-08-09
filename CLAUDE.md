@@ -4,23 +4,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this app is
 
-Black Circles is a Laravel + Vue 3 (Inertia.js) app to explore a Discogs vinyl record collection with AI features — mood-based browsing, plain-English "vibe" search, and a personality profile generated from listening history. It uses Meilisearch (via Laravel Scout) for full-text search and Hugging Face-hosted models for AI inference.
+Black Circles is a Laravel API + Nuxt 4 (TypeScript SPA) app to explore a Discogs vinyl record collection with AI features — mood-based browsing, plain-English "vibe" search, and a personality profile generated from listening history. It uses Meilisearch (via Laravel Scout) for full-text search and Hugging Face-hosted models for AI inference.
+
+Laravel is a JSON API only (`routes/api.php`, prefixed `/api/v1`) — it has no pages of its own. [`frontend/`](frontend/) (Nuxt 4) is the only UI. This split happened in the migration tracked by issue #5 (Inertia → Nuxt); see [`DEPLOY.md`](DEPLOY.md) for the production Forge topology.
 
 ## Commands
 
-### Local development (without Docker)
-
-```bash
-composer dev        # starts PHP server, queue worker, pail log viewer, and Vite concurrently
-```
-
-### Local development (with Docker / Sail)
+### Local development (with Docker / Sail) — backend
 
 ```bash
 ./vendor/bin/sail up -d
 ./vendor/bin/sail artisan migrate
-./vendor/bin/sail npm run dev
 ```
+
+### Local development (without Docker) — backend
+
+```bash
+composer dev        # starts PHP server, queue worker, and pail log viewer concurrently (backend only)
+```
+
+### Local development — frontend
+
+```bash
+cd frontend
+npm install
+npm run dev          # Nuxt dev server on :3000, proxies /api to Sail (:80)
+```
+
+Navigate to http://localhost:3000/.
 
 ### PHP
 
@@ -31,16 +42,23 @@ php artisan test --filter=Name   # run a single test class or method
 ./vendor/bin/pint                # format PHP (Laravel Pint)
 ```
 
-### JavaScript
+### Frontend (`frontend/`)
 
 ```bash
-npm run dev           # Vite dev server
-npm run build         # production build
-npm test              # Vitest (JS unit tests in resources/js/**/*.{test,spec}.js)
-npm run lint          # ESLint
-npm run lint:fix      # ESLint with auto-fix
-npm run format        # Prettier write
-npm run format:check  # Prettier check
+npm run build         # production build (Node server output, see DEPLOY.md)
+npm run generate      # static prerender (not used in production; build is)
+npm run typecheck     # vue-tsc
+npm test              # Vitest
+```
+
+### Root (Playwright e2e + lint for `e2e/` and root config files)
+
+```bash
+npm run test:e2e       # Playwright against the Nuxt build (see e2e/)
+npm run lint           # ESLint
+npm run lint:fix       # ESLint with auto-fix
+npm run format         # Prettier write
+npm run format:check   # Prettier check
 ```
 
 ### Data / AI
@@ -54,31 +72,32 @@ php artisan personality:generate      # regenerate AI personality insight
 
 ### Backend (Laravel 13, PHP 8.3)
 
-- `app/Http/Controllers/` — thin controllers; most logic is in services
-  - `MoodController` — home page + mood-based suggestions
-  - `VibeController` — dispatches and polls the async vibe-search job
+- `app/Http/Controllers/Api/V1/` — thin controllers; most logic is in services
+  - `HomeController` — moods list + personality insight
+  - `MoodController` — mood-based suggestions
+  - `VibeController` — plain-English vibe search (synchronous)
   - `CollectionController` — collection grid, search, detail, random
+- `app/Http/Resources/` — API Resources shaping the JSON responses (`MoodResource`, `ReleaseResource`, `ReleaseSummaryResource`, `SuggestionResource`, `HomeResource`, `CollectionIndexResource`)
 - `app/Services/` — all business logic lives here
   - `DiscogsService` — syncs releases and collection items from Discogs API
   - `HuggingFaceService` — wraps HF inference API calls
-  - `VibeSuggestionService` / `AiSuggestionDispatchService` — orchestrate the vibe search pipeline
+  - `VibeSuggestionService` — builds mood/vibe suggestions (matching + ranking)
+  - `CollectionQueryService` — shared filter/sort logic for the collection endpoints
   - `ReleaseSuggestionService` — mood-to-release matching
   - `PersonalityInsightService` — generates AI personality blurb from top genres/styles
-- `app/Jobs/ProcessVibeSuggestion.php` — queued job for vibe search; results stored in cache under a token
 - `app/Models/` — `DiscogsCollectionItem`, `DiscogsRelease`, `Genre`, `Mood`, `Style`, `MoodGenre`, `MoodStyle`, `MoodExcludeStyle`, `Setting`, `User`
 
-### Vibe search async flow
+Vibe search (`POST /api/v1/vibe/suggest`) and mood suggestions are synchronous — no queue/polling involved. The queue worker is only needed for `discogs:sync`/`personality:generate` (dispatched from `routes/console.php`'s weekly schedule).
 
-`POST /vibe` → `VibeController::suggest` dispatches `ProcessVibeSuggestion` job and returns a token → frontend polls `GET /vibe/poll/{token}` → when ready, redirects to `GET /vibe/result/{token}`. Cache (database driver by default) is the shared state between web and queue containers.
+### Frontend (Nuxt 4, TypeScript, SPA mode)
 
-### Frontend (Vue 3 + Inertia.js)
-
-- `resources/js/app.js` — Inertia bootstrap
-- `resources/js/Pages/` — one file per route (Inertia pages)
-- `resources/js/Components/` — reusable Vue components
-- `resources/js/Layouts/` — page layouts
-- Path alias `@` resolves to `resources/js/`
-- Tailwind CSS v3 for styling; `@tailwindcss/forms` plugin included
+- `frontend/pages/` — one file per route (file-based routing)
+- `frontend/components/` — reusable Vue components
+- `frontend/layouts/default.vue` — nav + footer
+- `frontend/composables/useApi.ts` — typed `$fetch` wrapper around `/api/v1`
+- `frontend/types/api.ts` — types mirroring the backend's API Resources
+- `ssr: false` — every page fetches its own data client-side with `useAsyncData(..., { lazy: true })` plus a skeleton/error state; there is no server-rendered pass, only a Node process serving the built SPA shell + static assets in production (see DEPLOY.md)
+- Tailwind CSS v4 via `@tailwindcss/vite`
 
 ### AI models (Hugging Face Inference API)
 
@@ -93,5 +112,5 @@ Set `HUGGINGFACE_API_TOKEN` to enable these features.
 
 - MySQL 8.4 for primary data
 - Meilisearch for full-text search (Laravel Scout); index populated during `discogs:sync`
-- Queue driver: database (default); a queue worker must be running for AI jobs to complete
-- Deployed via Laravel Forge; weekly sync cron runs Sunday midnight PST
+- Queue driver: database (default); a queue worker must be running for `discogs:sync`/`personality:generate` to complete
+- Deployed via Laravel Forge — Laravel (PHP-FPM) + a Nuxt Node process behind nginx, single origin; weekly sync cron runs Sunday midnight PST. See [`DEPLOY.md`](DEPLOY.md) for the full Forge setup.

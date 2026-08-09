@@ -13,12 +13,18 @@ useHead({
     { property: 'og:type', content: 'website' },
     { property: 'og:title', content: appName },
     { property: 'og:description', content: description },
+    { property: 'og:image', content: '/images/og-image.png' },
+    { property: 'og:image:width', content: '1200' },
+    { property: 'og:image:height', content: '630' },
     { name: 'twitter:card', content: 'summary_large_image' },
     { name: 'twitter:title', content: appName },
     { name: 'twitter:description', content: description },
+    { name: 'twitter:image', content: '/images/og-image.png' },
   ],
   link: [
     { rel: 'icon', type: 'image/svg+xml', href: '/images/logo.svg' },
+    { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/images/favicon-32x32.png' },
+    { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
     { rel: 'preconnect', href: 'https://fonts.bunny.net' },
     {
       rel: 'stylesheet',

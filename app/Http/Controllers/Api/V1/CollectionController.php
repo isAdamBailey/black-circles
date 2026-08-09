@@ -63,4 +63,37 @@ class CollectionController extends Controller
 
         return (new ReleaseResource($release))->response();
     }
+
+    public function search(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->get('q', ''));
+        if ($q === '') {
+            return response()->json(['data' => []]);
+        }
+
+        try {
+            $releases = DiscogsRelease::search($q)
+                ->take(10)
+                ->get();
+        } catch (\Throwable) {
+            $search = $q;
+            $releases = DiscogsRelease::query()
+                ->whereHas('collectionItem')
+                ->where(fn ($query) => $query->where('title', 'like', "%{$search}%")
+                    ->orWhere('artist', 'like', "%{$search}%")
+                    ->orWhere('label', 'like', "%{$search}%"))
+                ->limit(10)
+                ->get();
+        }
+
+        $data = $releases->map(fn ($r) => [
+            'id' => $r->id,
+            'discogs_id' => $r->discogs_id,
+            'title' => $r->title,
+            'artist' => $r->artist,
+            'thumb' => $r->thumb,
+        ]);
+
+        return response()->json(['data' => $data]);
+    }
 }

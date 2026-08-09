@@ -1,24 +1,19 @@
 import js from '@eslint/js';
-import pluginVue from 'eslint-plugin-vue';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import globals from 'globals';
 
 export default [
-    { ignores: ['node_modules', 'vendor', 'public/build', 'storage', 'bootstrap/cache', '*.min.js'] },
+    { ignores: ['node_modules', 'vendor', 'frontend', 'storage', 'bootstrap/cache'] },
     js.configs.recommended,
-    ...pluginVue.configs['flat/recommended'],
     {
-        files: ['**/*.{js,vue}'],
+        files: ['**/*.{js,ts}'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'module',
             globals: {
                 ...globals.browser,
-                route: 'readonly',
+                ...globals.node,
             },
-        },
-        rules: {
-            'vue/multi-word-component-names': 'off',
         },
     },
     eslintConfigPrettier,

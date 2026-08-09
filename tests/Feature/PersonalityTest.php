@@ -5,26 +5,6 @@ use App\Models\DiscogsRelease;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Http;
 
-it('includes personality insight on the home page', function () {
-    Setting::set('personality_insight', 'This collection reveals a listener who values depth and atmosphere.');
-
-    $this->get(route('home'))
-        ->assertStatus(200)
-        ->assertInertia(fn ($page) => $page
-            ->component('Home')
-            ->where('insight', 'This collection reveals a listener who values depth and atmosphere.')
-        );
-});
-
-it('returns empty insight on home when no insight stored in settings', function () {
-    $this->get(route('home'))
-        ->assertStatus(200)
-        ->assertInertia(fn ($page) => $page
-            ->component('Home')
-            ->where('insight', '')
-        );
-});
-
 it('personality:generate stores insight in settings', function () {
     config(['services.huggingface.token' => 'test-token']);
 
