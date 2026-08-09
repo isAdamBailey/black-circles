@@ -2,7 +2,7 @@
 
 [![Laravel Forge Site Deployment Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fforge.laravel.com%2Fsite-badges%2Fe02bdf85-96d4-4d8e-8982-507d89b24bec&style=flat)](https://forge.laravel.com/adam-f6w/adambaileyio/3060937)
 
-A Laravel + Vue (Inertia.js) application to display, explore, and understand your [Discogs](https://www.discogs.com) vinyl record collection — powered by AI.
+A Laravel API + Nuxt 4 application to display, explore, and understand your [Discogs](https://www.discogs.com) vinyl record collection — powered by AI.
 
 ## Features
 
@@ -14,7 +14,7 @@ A Laravel + Vue (Inertia.js) application to display, explore, and understand you
 
 ## Tech Stack
 
-Laravel 12 (PHP 8.3), Vue 3 + Inertia.js, Tailwind, MySQL 8.4, Meilisearch (Scout), [Discogs API](https://www.discogs.com/developers/).
+Laravel 13 (PHP 8.3) JSON API, Nuxt 4 (TypeScript, Tailwind) SPA in [`frontend/`](frontend/), MySQL 8.4, Meilisearch (Scout), [Discogs API](https://www.discogs.com/developers/).
 
 ## AI Models
 
@@ -52,11 +52,17 @@ This starts the app (`laravel.test`), MySQL, Meilisearch, and a **`queue`** cont
 ```bash
 ./vendor/bin/sail artisan key:generate
 ./vendor/bin/sail artisan migrate
-./vendor/bin/sail npm install
-./vendor/bin/sail npm run dev
 ```
 
-Open **http://localhost** unless you changed `APP_PORT` / port mappings in `.env`.
+Then, in a separate terminal, run the frontend (see [`frontend/README.md`](frontend/README.md)):
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open **http://localhost:3000** (the Nuxt dev server proxies `/api` to Sail on `:80`).
 
 ### 4. Load your collection
 
@@ -75,7 +81,6 @@ Until you sync, grids and AI suggestions have nothing to match against.
 | `DISCOGS_USERNAME` | For automated / scheduled sync | Your public Discogs username; you can also pass username to `discogs:sync` |
 | `DISCOGS_TOKEN` | No | Improves Discogs rate limits — [discogs.com/settings/developers](https://www.discogs.com/settings/developers) |
 | `HUGGINGFACE_API_TOKEN` | No | **Personality** insight — [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) (Read scope is enough) |
-| `VITE_GOOGLE_TAG_ID` | No | Google Analytics tag ID |
 
 ### If you are not using this repo’s `docker-compose.yml`
 
@@ -93,4 +98,4 @@ sail artisan personality:generate
 
 ## Deployment (Forge)
 
-[Laravel Forge](https://forge.laravel.com) — MySQL via Forge, Meilisearch on server. Set env vars in Forge Environment editor.
+[Laravel Forge](https://forge.laravel.com) — MySQL via Forge, Meilisearch on server, Nuxt run as a Forge Daemon behind nginx. See [`DEPLOY.md`](DEPLOY.md) for the full setup.

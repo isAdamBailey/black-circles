@@ -3,40 +3,18 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
-        "dev": "vite",
-        "lint": "eslint resources/js",
-        "lint:fix": "eslint resources/js --fix",
-        "format": "prettier --write resources/js",
-        "format:check": "prettier --check resources/js",
-        "test": "vitest run",
-        "test:e2e": "playwright test",
-        "test:e2e:nuxt": "playwright test --config=playwright.nuxt.config.ts"
-    },
-    "dependencies": {
-        "axios": "^1.11.0",
-        "vue-gtag": "^3.7.0"
+        "lint": "eslint e2e *.config.ts",
+        "lint:fix": "eslint e2e *.config.ts --fix",
+        "format": "prettier --write e2e *.config.ts",
+        "format:check": "prettier --check e2e *.config.ts",
+        "test:e2e": "playwright test"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
-        "@inertiajs/vue3": "^3.0",
         "@playwright/test": "^1.62.1",
-        "@tailwindcss/forms": "^0.5.3",
-        "@tailwindcss/vite": "^4.0.0",
-        "@vitejs/plugin-vue": "^5.2.4",
-        "autoprefixer": "^10.4.12",
-        "concurrently": "^9.0.1",
         "eslint": "^10.0.2",
         "eslint-config-prettier": "^10.1.8",
-        "eslint-plugin-vue": "^10.8.0",
         "globals": "^17.3.0",
-        "jsdom": "^28.1.0",
-        "laravel-vite-plugin": "^1.2.0",
-        "postcss": "^8.4.31",
-        "prettier": "^3.8.1",
-        "tailwindcss": "^3.2.1",
-        "vite": "^6.0.0",
-        "vitest": "^4.0.18",
-        "vue": "^3.4.0"
+        "prettier": "^3.8.1"
     }
 }
