@@ -132,6 +132,7 @@ $FORGE_PHP artisan queue:restart
 
 cd frontend
 npm ci
+set -a; source ../.env; set +a
 npm run build
 
 sudo supervisorctl restart daemon-<id>:*
@@ -140,6 +141,17 @@ sudo supervisorctl restart daemon-<id>:*
 Forge names each daemon `daemon-<id>` (a numeric id it assigns once the
 daemon exists — get it from that site's Daemons tab and substitute it above).
 `view:cache` is dropped — there are no Blade views left to cache.
+
+The `source ../.env` line matters specifically for `VITE_GOOGLE_TAG_ID` (see
+step 5) — `nuxt.config.ts` reads it with a plain `process.env` lookup, not
+Nuxt's `NUXT_PUBLIC_*` runtime-config convention, so it's only picked up if
+it's an actual shell env var *at build time*. Bash scripts don't auto-source
+`.env`, and Forge's Deploy Script doesn't either, so without this line the
+variable Forge writes to `.env` from the Environment tab would silently never
+reach `npm run build`. (This doesn't apply to `NUXT_PUBLIC_API_BASE` — that
+one *is* the `NUXT_PUBLIC_*` convention, which Nitro re-reads dynamically at
+server start regardless of what was baked in at build time, which is why it's
+set on the Daemon's Command line instead.)
 
 ## 4. Nginx configuration (Forge → site → Files → Edit Nginx Configuration)
 
@@ -206,6 +218,7 @@ MEILISEARCH_HOST=http://127.0.0.1:7700
 DISCOGS_USERNAME=
 DISCOGS_TOKEN=
 HUGGINGFACE_API_TOKEN=
+VITE_GOOGLE_TAG_ID=                  # optional — GA4 measurement ID, see below
 ```
 
 `NUXT_PUBLIC_API_BASE` is set on the Daemon's Command line (step 2), not
@@ -214,6 +227,13 @@ here — Forge's Environment tab isn't confirmed to reach Daemon processes.
 proxies both `/api` and `/` from the same domain) means CORS isn't actually
 exercised browser-to-browser here, but it's still the correct value in case
 that changes.
+
+`VITE_GOOGLE_TAG_ID` is the var name kept from the old Vite/vue-gtag setup —
+`frontend/nuxt.config.ts` reads it directly to configure the `nuxt-gtag`
+module. Unlike `NUXT_PUBLIC_API_BASE`, this one **is** read here (Environment
+tab → `.env`), because the Deploy Script's `source ../.env` line (step 3)
+exports it into the `npm run build` step. Leave it empty to run without
+analytics — the module no-ops with no id set.
 
 Also enable Forge's **Scheduler** (weekly `discogs:sync` +
 `personality:generate`, see `routes/console.php`) and a **queue:work** daemon
@@ -229,7 +249,8 @@ Also enable Forge's **Scheduler** (weekly `discogs:sync` +
       Command line, Directory = `frontend/`.
 - [ ] Daemon manually started once and confirmed `RUNNING`.
 - [ ] Deploy Script updated (step 3) with the correct
-      `supervisorctl restart daemon-<id>` program name.
+      `supervisorctl restart daemon-<id>` program name and the
+      `source ../.env` line before `npm run build`.
 - [ ] Nginx edited (step 4) — `/api` and `/up` to PHP-FPM, `/` (and
       `/_nuxt/`) proxied to `127.0.0.1:3004` (same port as the daemon).
 - [ ] Env vars set (step 5).
@@ -240,6 +261,11 @@ Also enable Forge's **Scheduler** (weekly `discogs:sync` +
   - `curl -s -o /dev/null -w '%{http_code}\n' https://<domain>/` → `200`,
     served by Nuxt (view source: `<div id="__nuxt">`)
   - Collection search autocomplete works in the real UI
+  - If `VITE_GOOGLE_TAG_ID` is set: open `https://<domain>/` in a real
+    browser (not `curl` — the gtag script injects client-side, post-hydration,
+    same as the rest of this `ssr:false` app's `<head>` tags) and check
+    DevTools → Network for a request to `googletagmanager.com/gtag/js`, or
+    check GA4's Realtime report
 - [ ] Confirm the Nuxt daemon survives a server reboot (Supervisor should
       restart it automatically; verify via Forge's Daemons tab after a
       reboot).
