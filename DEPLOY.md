@@ -78,6 +78,15 @@ Forge's **Push to deploy** should otherwise already be enabled on this site
 (Deployments tab) — nothing about *triggering* deploys changes here, only
 what a deploy does and when you let one happen.
 
+**None of the above applies if this is a brand-new Forge site that has never
+deployed successfully.** #14 has since merged, and there's no live traffic
+serving Inertia to protect — the whole point of this staged ordering was to
+avoid breaking an *existing* production site mid-migration. For a fresh site:
+just get the Deploy Script (step 3) right first — there's nothing on disk to
+manually build into yet, since nothing has been cloned there — then let a
+deploy run, then set up the Daemon (step 2) once `frontend/.output/` actually
+exists, then nginx (step 4).
+
 ## 1. Site settings (Forge → site → General)
 
 Unchanged: Web Directory `/public`, PHP 8.3. Laravel still boots from
@@ -114,13 +123,17 @@ auto-start a brand-new daemon.
 ## 3. Deploy Script (Forge → site → App / Deploy Script)
 
 Replace the existing script (it still has `npm run build`/Vite steps for the
-removed Inertia frontend):
+removed Inertia frontend).
+
+**If this site has Zero Downtime Deployment enabled** (Forge's deploy log
+says `=> Creating new release` / clones into `releases/<id>`), Forge already
+clones the repo into the new release directory *and* runs the deploy script
+from inside it — don't `cd` to the site root or `git pull` yourself; both
+are not just unneeded but actively wrong (the site root path may not exist
+yet as a symlink on a first deploy, and re-pulling on top of a fresh clone
+is redundant):
 
 ```bash
-cd /home/forge/<domain>
-
-git pull origin $FORGE_SITE_BRANCH
-
 $FORGE_COMPOSER install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
 $FORGE_PHP artisan migrate --force
@@ -136,6 +149,16 @@ set -a; source ../.env; set +a
 npm run build
 
 sudo supervisorctl restart daemon-<id>:*
+```
+
+**If Zero Downtime Deployment is *not* enabled** (standard deploy, no
+`releases/` directories), prepend the two lines it would otherwise skip:
+
+```bash
+cd /home/forge/<domain>
+git pull origin $FORGE_SITE_BRANCH
+
+$FORGE_COMPOSER install ...
 ```
 
 Forge names each daemon `daemon-<id>` (a numeric id it assigns once the
