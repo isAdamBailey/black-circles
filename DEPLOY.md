@@ -36,10 +36,47 @@ server-side. `nuxt build` (not `generate`) still produces a Node server
 (`.output/server/index.mjs`) that does this, run as a Forge Daemon — see
 `frontend/deploy/start-nuxt.sh`.
 
-## 0. Confirm auto-deploy is on
+## 0. Order of operations — do this *before* merging the cutover PR
 
-Forge's **Push to deploy** should already be enabled on this site (Deployments
-tab) — nothing about triggering deploys changes here.
+**Merging the Phase 5 PR (#14) and letting Forge auto-deploy it immediately
+will break the site**, for two independent reasons: (1) the site's *current*
+Deploy Script still runs `npm ci && npm run build` at the repo root for the
+old Vite/Inertia frontend — that script no longer exists once #14 merges, so
+the deploy fails partway through, potentially after `git pull` has already
+replaced files on disk but before `config:cache`/FPM reload run; (2) even if
+the deploy succeeded, nginx is still routing `/` to PHP-FPM, and Laravel has
+no web routes left to answer with.
+
+The fix is to **not couple the Forge changes to the PR merge**. `frontend/`
+(the full Nuxt app — all pages, all `/api/v1/*` endpoints it depends on) is
+already on `main` as of Phase 4 — Phase 5 only removes the *old* backend code
+and changes how Forge deploys. So the whole Node/nginx side below can be
+built and proven working while `main` still safely serves Inertia, and #14
+merged only once that's confirmed:
+
+1. Temporarily disable **Push to deploy** on the site (Deployments tab) so an
+   unrelated push doesn't trigger a deploy mid-setup.
+2. SSH in and manually build the frontend against current `main`:
+   `cd /home/forge/<domain>/frontend && npm ci && npm run build`. Proves the
+   build works before anything is wired up.
+3. Steps 2–3 below (find a free port, create + start the Daemon, confirm
+   `RUNNING`, `curl 127.0.0.1:<port>` from the server). This only talks to
+   the daemon directly — nginx and real users aren't affected yet.
+4. Step 4 below (edit nginx, reload). **This is the actual user-facing
+   cutover moment** — check the live domain immediately after. Do this
+   before merging anything, while you can still trivially revert by
+   re-editing nginx back to the default catch-all if something's wrong.
+5. Step 3's Deploy Script update — safe now, since nginx/daemon are already
+   correct and this doesn't require #14 to be merged.
+6. Step 5 (env vars).
+7. Re-enable Push to deploy, *then* merge #14. The triggered deploy runs the
+   *new* script against the *new* code — low-risk, since nginx and the
+   daemon were already proven working against the old code first.
+8. Run the checklist at the bottom of this file.
+
+Forge's **Push to deploy** should otherwise already be enabled on this site
+(Deployments tab) — nothing about *triggering* deploys changes here, only
+what a deploy does and when you let one happen.
 
 ## 1. Site settings (Forge → site → General)
 
