@@ -9,7 +9,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-: "${NUXT_PUBLIC_API_BASE:?Set NUXT_PUBLIC_API_BASE on the Forge Daemon's Command line (see DEPLOY.md)}"
+: "${NUXT_PUBLIC_API_BASE:?Set NUXT_PUBLIC_API_BASE on the Forge Daemon Command line (see DEPLOY.md)}"
 
 export PORT="${PORT:-3000}"
 export HOST="${HOST:-127.0.0.1}"
