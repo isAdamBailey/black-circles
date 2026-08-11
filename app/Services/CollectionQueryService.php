@@ -33,12 +33,18 @@ class CollectionQueryService
         } elseif ($sort === 'year') {
             $query->orderByRaw("CASE WHEN discogs_releases.year IS NULL OR discogs_releases.year = 0 THEN 1 ELSE 0 END ASC, discogs_releases.year {$dirSql}, discogs_releases.id ASC");
         } elseif ($sort === 'artist') {
-            $query->orderBy('discogs_releases.artist', $direction);
+            // Ties need a unique tiebreaker, otherwise the row order between
+            // two pages of the same query is undefined and paging through the
+            // collection can repeat or skip releases.
+            $query->orderBy('discogs_releases.artist', $direction)
+                ->orderBy('discogs_releases.id');
         } elseif ($sort === 'title') {
-            $query->orderBy('discogs_releases.title', $direction);
+            $query->orderBy('discogs_releases.title', $direction)
+                ->orderBy('discogs_releases.id');
         } else {
             $query->join('discogs_collection_items', 'discogs_releases.discogs_id', '=', 'discogs_collection_items.discogs_release_id')
                 ->orderBy('discogs_collection_items.date_added', $direction)
+                ->orderBy('discogs_releases.id')
                 ->select('discogs_releases.*');
         }
 

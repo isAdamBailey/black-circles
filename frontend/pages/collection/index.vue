@@ -53,43 +53,105 @@ const {
 const extraReleases = ref<CollectionIndex['data']>([])
 const currentPage = ref(1)
 const loadingMore = ref(false)
+const loadMoreError = ref(false)
+
+// Bumped whenever the first page is (re)fetched, so a page-2 request that was
+// already in flight when the filters changed can't append stale releases.
+let loadToken = 0
 
 watch(data, () => {
   extraReleases.value = []
   currentPage.value = 1
+  loadMoreError.value = false
+  loadingMore.value = false
+  loadToken += 1
 })
 
 const releases = computed(() => [...(data.value?.data ?? []), ...extraReleases.value])
 const meta = computed(() => data.value?.meta)
 const hasMore = computed(() => !!meta.value && currentPage.value < meta.value.last_page)
+const reachedEnd = computed(() => !!meta.value && meta.value.last_page > 1 && !hasMore.value)
+
+const sentinelRef = ref<HTMLElement | null>(null)
+// Without IntersectionObserver the sentinel can never fire, so fall back to a
+// manual button rather than stranding the rest of the collection.
+const supportsObserver = ref(true)
+let observer: IntersectionObserver | undefined
+
+/**
+ * An observer only fires on a *change* of intersection state, so a sentinel
+ * that is still on screen after a page is appended (tall viewport, sparse
+ * results) would never fire again and the scroll would dead-end. Re-observing
+ * queues a fresh delivery of the sentinel's current state, which the browser
+ * computes at the next rendering step — so the decision to keep going is made
+ * against real post-append layout rather than a cached flag.
+ */
+function reobserveSentinel() {
+  const el = sentinelRef.value
+  if (!observer || !el) return
+  observer.unobserve(el)
+  observer.observe(el)
+}
 
 async function loadMore() {
-  if (loadingMore.value || !hasMore.value) return
+  if (loadingMore.value || loadMoreError.value || !hasMore.value) return
   loadingMore.value = true
+  const token = loadToken
   try {
     const next = currentPage.value + 1
     const response = await get<CollectionIndex>('/collection', { query: buildQuery(next) })
+    if (token !== loadToken) return
     extraReleases.value = [...extraReleases.value, ...response.data]
     currentPage.value = next
   } catch {
-    // Load more failed silently — the button stays put so the user can retry.
+    if (token === loadToken) loadMoreError.value = true
   } finally {
-    loadingMore.value = false
+    if (token === loadToken) loadingMore.value = false
+  }
+
+  if (token === loadToken && hasMore.value && !loadMoreError.value) {
+    await nextTick()
+    reobserveSentinel()
   }
 }
 
-const sentinelRef = ref<HTMLElement | null>(null)
-let observer: IntersectionObserver | undefined
+function retryLoadMore() {
+  loadMoreError.value = false
+  loadMore()
+}
+
+// Infinite scroll has no button to announce, so a polite live region carries
+// the progress that sighted users read off the spinner and the end-of-list note.
+const loadMoreStatus = computed(() => {
+  if (!meta.value) return ''
+  if (loadingMore.value) return 'Loading more records…'
+  if (reachedEnd.value) return `All ${meta.value.total} records loaded.`
+  return `Showing ${releases.value.length} of ${meta.value.total} records.`
+})
 
 onMounted(() => {
-  if (typeof IntersectionObserver === 'undefined') return
+  if (typeof IntersectionObserver === 'undefined') {
+    supportsObserver.value = false
+    return
+  }
+
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries[0]?.isIntersecting) loadMore()
+      if (entries[entries.length - 1]?.isIntersecting) loadMore()
     },
-    { rootMargin: '300px' },
+    { rootMargin: '400px' },
   )
-  if (sentinelRef.value) observer.observe(sentinelRef.value)
+
+  // The sentinel lives behind `v-if`s that aren't rendered on the first tick
+  // (the page loads lazily), so attach as it appears rather than once on mount.
+  watch(
+    sentinelRef,
+    (el, previous) => {
+      if (previous) observer?.unobserve(previous)
+      if (el) observer?.observe(el)
+    },
+    { immediate: true, flush: 'post' },
+  )
 })
 
 onUnmounted(() => observer?.disconnect())
@@ -421,8 +483,22 @@ useHead({ title: 'Collection' })
           </NuxtLink>
         </div>
 
+        <p class="sr-only" role="status" aria-live="polite">{{ loadMoreStatus }}</p>
+
         <div v-if="hasMore" ref="sentinelRef" class="flex justify-center py-8">
+          <div v-if="loadMoreError" class="text-center" role="alert">
+            <p class="text-label text-sm mb-3">Couldn&apos;t load more records.</p>
+            <button
+              type="button"
+              class="px-5 py-2.5 bg-cabinet border border-groove rounded-lg text-sm text-label hover:text-pressing transition-colors"
+              @click="retryLoadMore"
+            >
+              Try again
+            </button>
+          </div>
+
           <button
+            v-else-if="!supportsObserver"
             type="button"
             class="px-5 py-2.5 bg-cabinet border border-groove rounded-lg text-sm text-label hover:text-pressing transition-colors disabled:opacity-50"
             :disabled="loadingMore"
@@ -430,7 +506,16 @@ useHead({ title: 'Collection' })
           >
             {{ loadingMore ? 'Loading…' : 'Load more' }}
           </button>
+
+          <div v-else class="flex items-center gap-2 text-dust text-sm" aria-hidden="true">
+            <span class="w-4 h-4 rounded-full border-2 border-groove border-t-pressing motion-safe:animate-spin" />
+            Loading more records…
+          </div>
         </div>
+
+        <p v-else-if="reachedEnd" class="text-center text-dust text-sm py-8" aria-hidden="true">
+          That&apos;s all {{ meta?.total }} records.
+        </p>
       </template>
     </template>
   </div>
