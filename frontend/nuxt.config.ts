@@ -12,7 +12,14 @@ export default defineNuxtConfig({
   // in production — see ../DEPLOY.md for how it's run behind nginx.
   ssr: false,
 
-  modules: ['nuxt-gtag'],
+  app: {
+    head: {
+      meta: [{ name: 'theme-color', content: '#030712' }],
+      link: [{ rel: 'manifest', href: '/manifest.webmanifest' }],
+    },
+  },
+
+  modules: ['nuxt-gtag', '@vite-pwa/nuxt'],
 
   typescript: {
     strict: true,
@@ -45,11 +52,82 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    prerender: {
+      routes: ['/'],
+    },
     devProxy: {
       '/api': {
         target: 'http://localhost/api',
         changeOrigin: true,
       },
+    },
+  },
+
+  pwa: {
+    registerType: 'autoUpdate',
+    includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'images/logo.svg', 'images/favicon-32x32.png'],
+    manifest: {
+      name: 'Black Circles',
+      short_name: 'Black Circles',
+      description:
+        "Discover music from Adam's vinyl collection. Pick a mood and get suggestions from Adam's Discogs collection.",
+      theme_color: '#030712',
+      background_color: '#030712',
+      display: 'standalone',
+      start_url: '/',
+      lang: 'en',
+      categories: ['music', 'entertainment'],
+      icons: [
+        {
+          src: 'pwa-192x192.png',
+          sizes: '192x192',
+          type: 'image/png',
+          purpose: 'any',
+        },
+        {
+          src: 'pwa-512x512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'any',
+        },
+        {
+          src: 'pwa-maskable-512x512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'maskable',
+        },
+      ],
+    },
+    workbox: {
+      navigateFallback: '/',
+      navigateFallbackDenylist: [/^\/api\//],
+      globPatterns: ['**/*.{js,css,html,png,svg,ico,txt,woff2,webmanifest}'],
+      runtimeCaching: [
+        {
+          urlPattern: /^https:\/\/fonts\.bunny\.net\/.*/i,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'bunny-fonts',
+            expiration: {
+              maxEntries: 16,
+              maxAgeSeconds: 60 * 60 * 24 * 365,
+            },
+            cacheableResponse: { statuses: [0, 200] },
+          },
+        },
+        {
+          urlPattern: /^https:\/\/i\.discogs\.com\/.*/i,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'discogs-images',
+            expiration: {
+              maxEntries: 200,
+              maxAgeSeconds: 60 * 60 * 24 * 30,
+            },
+            cacheableResponse: { statuses: [0, 200] },
+          },
+        },
+      ],
     },
   },
 })

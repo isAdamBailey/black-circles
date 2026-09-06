@@ -10,6 +10,11 @@ useHead({
   titleTemplate: (title) => (title && title !== appName ? `${title} - ${appName}` : appName),
   meta: [
     { name: 'description', content: description },
+    { name: 'theme-color', content: '#030712' },
+    { name: 'mobile-web-app-capable', content: 'yes' },
+    { name: 'apple-mobile-web-app-capable', content: 'yes' },
+    { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+    { name: 'apple-mobile-web-app-title', content: appName },
     { property: 'og:type', content: 'website' },
     { property: 'og:title', content: appName },
     { property: 'og:description', content: description },
