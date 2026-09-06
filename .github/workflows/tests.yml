@@ -146,6 +146,7 @@ jobs:
         run: node .output/server/index.mjs &
         env:
           PORT: 3000
+          NUXT_PUBLIC_API_BASE: http://localhost/api/v1
 
       - name: Wait for Nuxt server
         run: npx wait-on http://localhost:3000

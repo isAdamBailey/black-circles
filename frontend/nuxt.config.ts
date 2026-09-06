@@ -52,9 +52,6 @@ export default defineNuxtConfig({
   },
 
   nitro: {
-    prerender: {
-      routes: ['/'],
-    },
     devProxy: {
       '/api': {
         target: 'http://localhost/api',
@@ -99,10 +96,12 @@ export default defineNuxtConfig({
       ],
     },
     workbox: {
-      navigateFallback: '/',
-      navigateFallbackDenylist: [/^\/api\//],
-      globPatterns: ['**/*.{js,css,html,png,svg,ico,txt,woff2,webmanifest}'],
+      globPatterns: ['**/*.{js,css,png,svg,ico,txt,woff2,webmanifest}'],
       runtimeCaching: [
+        {
+          urlPattern: /\/api\//,
+          handler: 'NetworkOnly',
+        },
         {
           urlPattern: /^https:\/\/fonts\.bunny\.net\/.*/i,
           handler: 'CacheFirst',
