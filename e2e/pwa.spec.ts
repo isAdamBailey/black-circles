@@ -20,7 +20,7 @@ test.describe('PWA', () => {
                     src: expect.stringContaining('pwa-maskable-512x512.png'),
                     purpose: 'maskable',
                 }),
-            ]),
+            ])
         );
     });
 
