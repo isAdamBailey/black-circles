@@ -4,9 +4,10 @@ import { flushPromises } from '@vue/test-utils'
 import CollectionShowPage from '~/pages/collection/[id].vue'
 import type { Release } from '~/types/api'
 
-const { getMock } = vi.hoisted(() => ({ getMock: vi.fn() }))
+const { getMock, navigateToMock } = vi.hoisted(() => ({ getMock: vi.fn(), navigateToMock: vi.fn() }))
 
 mockNuxtImport('useApi', () => () => ({ get: getMock, post: vi.fn() }))
+mockNuxtImport('navigateTo', () => navigateToMock)
 
 function release(overrides: Partial<Release> = {}): Release {
   return {
@@ -42,8 +43,8 @@ function fetchError(statusCode: number) {
 
 let mountedWrapper: Awaited<ReturnType<typeof mountSuspended>> | undefined
 
-async function mountShowPage(id = '111') {
-  const wrapper = await mountSuspended(CollectionShowPage, { route: `/collection/${id}` })
+async function mountShowPage(id = '111', query = '') {
+  const wrapper = await mountSuspended(CollectionShowPage, { route: `/collection/${id}${query}` })
   await flushPromises()
 
   mountedWrapper = wrapper
@@ -100,6 +101,29 @@ describe('collection show page', () => {
     const wrapper = await mountShowPage('111')
 
     expect(wrapper.text()).toContain("Couldn't load this release")
+  })
+
+  it('hides the shuffle action when not reached via random', async () => {
+    getMock.mockResolvedValue({ data: release() })
+
+    const wrapper = await mountShowPage('111')
+
+    expect(wrapper.text()).not.toContain('Shuffle again')
+  })
+
+  it('shuffles to another random release when reached via random', async () => {
+    getMock.mockResolvedValueOnce({ data: release() }).mockResolvedValueOnce({ data: release({ discogs_id: 222 }) })
+
+    const wrapper = await mountShowPage('111', '?random=1')
+
+    expect(wrapper.text()).toContain('Shuffle again')
+
+    const shuffleButton = wrapper.findAll('button').find((b) => b.text().includes('Shuffle again'))
+    await shuffleButton!.trigger('click')
+    await flushPromises()
+
+    expect(getMock).toHaveBeenCalledWith('/collection/random')
+    expect(navigateToMock).toHaveBeenCalledWith({ path: '/collection/222', query: { random: '1' } }, { replace: true })
   })
 })
 

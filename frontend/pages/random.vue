@@ -7,7 +7,7 @@ const { data, error } = await useAsyncData('random-release', () => get<ApiEnvelo
 
 watchEffect(() => {
   if (data.value?.data) {
-    navigateTo(`/collection/${data.value.data.discogs_id}`, { replace: true })
+    navigateTo({ path: `/collection/${data.value.data.discogs_id}`, query: { random: '1' } }, { replace: true })
   }
 })
 

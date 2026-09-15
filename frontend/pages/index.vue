@@ -50,13 +50,12 @@ useHead({ title: 'Discover' })
         Adam&apos;s Black Circles
       </h1>
       <p class="text-label leading-relaxed text-center mb-10 max-w-3xl mx-auto">
-        Search and pick records based on mood. Browse and sort the full collection, or jump into random
-        releases.
+        Search and pick records based on mood, or let the shelf decide.
       </p>
 
       <div class="mb-10">
         <div class="flex items-center justify-between max-w-3xl mx-auto mb-6">
-          <h2 class="text-2xl font-bold tracking-[-0.01em] text-pressing">Pick a mood</h2>
+          <h2 class="text-2xl font-bold tracking-[-0.01em] text-pressing">Find something to play</h2>
           <button
             v-if="username"
             type="button"
@@ -92,48 +91,67 @@ useHead({ title: 'Discover' })
         </div>
 
         <div v-else-if="moodSectionOpen" id="mood-section-panel">
-          <form
-            v-if="username"
-            class="mb-2 flex flex-col sm:flex-row gap-3 max-w-3xl mx-auto w-full"
-            @submit.prevent="submitVibe"
-          >
-            <input
-              v-model="prompt"
-              type="text"
-              placeholder="e.g. dark moody post-punk for a late night drive"
-              class="flex-1 px-4 py-3 bg-cabinet border border-groove rounded-lg text-pressing placeholder-dust focus:border-oxblood-bright focus:ring-1 focus:ring-oxblood-bright"
-              :disabled="processing"
-            >
-            <button
-              type="submit"
-              :disabled="processing || !promptIsValid"
-              class="inline-flex items-center justify-center rounded-lg bg-oxblood px-5 py-3 text-sm font-semibold text-pressing transition-colors hover:bg-oxblood-bright focus:outline-none focus:ring-2 focus:ring-oxblood-bright focus:ring-offset-2 focus:ring-offset-void disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-oxblood"
+          <div v-if="username" class="mb-2 flex flex-col sm:flex-row gap-3 max-w-3xl mx-auto w-full">
+            <form class="flex-1 flex flex-col sm:flex-row gap-3" @submit.prevent="submitVibe">
+              <input
+                v-model="prompt"
+                type="text"
+                placeholder="e.g. dark moody post-punk for a late night drive"
+                class="flex-1 px-4 py-3 bg-cabinet border border-groove rounded-lg text-pressing placeholder-dust focus:border-oxblood-bright focus:ring-1 focus:ring-oxblood-bright"
+                :disabled="processing"
+              >
+              <button
+                type="submit"
+                :disabled="processing || !promptIsValid"
+                class="inline-flex items-center justify-center rounded-lg bg-oxblood px-5 py-3 text-sm font-semibold text-pressing transition-colors hover:bg-oxblood-bright focus:outline-none focus:ring-2 focus:ring-oxblood-bright focus:ring-offset-2 focus:ring-offset-void disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-oxblood"
+              >
+                <svg
+                  v-if="processing"
+                  class="motion-safe:animate-spin -ml-0.5 mr-2 h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  />
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
+                </svg>
+                {{ processing ? 'Finding...' : 'Find it' }}
+              </button>
+            </form>
+            <NuxtLink
+              to="/random"
+              class="shrink-0 inline-flex items-center justify-center gap-2 rounded-lg bg-oxblood px-5 py-3 text-sm font-semibold text-pressing transition-colors hover:bg-oxblood-bright focus:outline-none focus:ring-2 focus:ring-oxblood-bright focus:ring-offset-2 focus:ring-offset-void"
             >
               <svg
-                v-if="processing"
-                class="motion-safe:animate-spin -ml-0.5 mr-2 h-4 w-4"
                 xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
                 fill="none"
                 viewBox="0 0 24 24"
+                stroke="currentColor"
                 aria-hidden="true"
               >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                />
                 <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-              {{ processing ? 'Finding...' : 'Find it' }}
-            </button>
-          </form>
+              Random release
+            </NuxtLink>
+          </div>
           <p v-if="vibeError" role="alert" class="text-center text-signal-error-text text-base mb-6">
             {{ vibeError }}
           </p>
@@ -173,31 +191,10 @@ useHead({ title: 'Discover' })
         </div>
       </div>
 
-      <div class="mb-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-        <NuxtLink
-          v-if="username"
-          to="/random"
-          class="inline-flex items-center justify-center gap-2 min-w-[200px] px-5 py-2.5 bg-oxblood hover:bg-oxblood-bright border border-transparent rounded-lg text-pressing text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-oxblood-bright focus:ring-offset-2 focus:ring-offset-void"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          Random release
-        </NuxtLink>
+      <div class="mb-10 flex justify-center">
         <NuxtLink
           to="/collection"
-          class="inline-flex items-center justify-center min-w-[200px] px-5 py-2.5 bg-oxblood hover:bg-oxblood-bright border border-transparent rounded-lg text-pressing text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-oxblood-bright focus:ring-offset-2 focus:ring-offset-void"
+          class="inline-flex items-center justify-center min-w-[200px] px-5 py-2.5 bg-shelf hover:bg-groove border border-jacket rounded-lg text-pressing text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-groove focus:ring-offset-2 focus:ring-offset-void"
         >
           Browse collection
         </NuxtLink>

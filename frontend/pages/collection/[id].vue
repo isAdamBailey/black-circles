@@ -15,6 +15,24 @@ const { data, error } = await useAsyncData(
 const release = computed(() => data.value?.data ?? null)
 const notFound = computed(() => error.value?.statusCode === 404)
 
+const isRandom = computed(() => route.query.random === '1')
+const shuffling = ref(false)
+const shuffleError = ref(false)
+
+async function shuffleAgain() {
+  if (shuffling.value) return
+  shuffling.value = true
+  shuffleError.value = false
+  try {
+    const response = await get<ApiEnvelope<Release>>('/collection/random')
+    await navigateTo({ path: `/collection/${response.data.discogs_id}`, query: { random: '1' } }, { replace: true })
+  } catch {
+    shuffleError.value = true
+  } finally {
+    shuffling.value = false
+  }
+}
+
 const imageIndex = ref(0)
 
 watch(release, () => {
@@ -61,12 +79,42 @@ useHead(() => ({ title: release.value?.title ?? 'Release' }))
 
 <template>
   <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <NuxtLink
-      to="/collection"
-      class="inline-flex items-center gap-2 text-dust hover:text-pressing text-sm mb-8 transition-colors"
-    >
-      ← Back to collection
-    </NuxtLink>
+    <div class="flex items-center justify-between gap-4 mb-8">
+      <NuxtLink
+        to="/collection"
+        class="inline-flex items-center gap-2 text-dust hover:text-pressing text-sm transition-colors"
+      >
+        ← Back to collection
+      </NuxtLink>
+
+      <div v-if="isRandom" class="flex items-center gap-3">
+        <p v-if="shuffleError" role="alert" class="text-signal-error-text text-sm">Couldn&apos;t load another one.</p>
+        <button
+          type="button"
+          :disabled="shuffling"
+          class="inline-flex items-center gap-2 rounded-md bg-shelf hover:bg-groove border border-jacket px-4 py-2 text-sm font-semibold text-pressing transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          @click="shuffleAgain"
+        >
+          <svg
+            class="h-4 w-4"
+            :class="{ 'motion-safe:animate-spin': shuffling }"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          {{ shuffling ? 'Shuffling…' : 'Shuffle again' }}
+        </button>
+      </div>
+    </div>
 
     <div v-if="notFound" class="text-center py-12">
       <div class="text-6xl mb-4" aria-hidden="true">⚫</div>

@@ -69,7 +69,10 @@ describe('random page', () => {
     await mountRandomPage()
 
     expect(getMock).toHaveBeenCalledWith('/collection/random')
-    expect(navigateToMock).toHaveBeenCalledWith('/collection/111', { replace: true })
+    expect(navigateToMock).toHaveBeenCalledWith(
+      { path: '/collection/111', query: { random: '1' } },
+      { replace: true },
+    )
   })
 
   it('shows the API message when the collection is empty', async () => {
