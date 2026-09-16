@@ -43,17 +43,18 @@ useHead({ title: 'Discover' })
 
 <template>
   <div class="min-h-[calc(100vh-4rem)] flex flex-col">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 flex flex-col justify-center w-full">
-      <h1
-        class="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-balance text-pressing text-center mb-3"
-      >
+    <section class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12 sm:pt-24 sm:pb-16 w-full text-center">
+      <h1 class="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-balance text-pressing mb-4">
         Adam&apos;s Black Circles
       </h1>
-      <p class="text-label leading-relaxed text-center mb-10 max-w-3xl mx-auto">
-        Search and pick records based on mood, or let the shelf decide.
+      <p class="text-label leading-relaxed text-pretty max-w-2xl mx-auto text-lg">
+        A working vinyl collection, browsable by mood. Describe what you want to hear, or let the shelf
+        decide for you.
       </p>
+    </section>
 
-      <div class="mb-10">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 w-full border-t border-jacket/40">
+      <div class="mb-6 pt-12">
         <div class="flex items-center justify-between max-w-3xl mx-auto mb-6">
           <h2 class="text-2xl font-bold tracking-[-0.01em] text-pressing">Find something to play</h2>
           <button
@@ -191,7 +192,7 @@ useHead({ title: 'Discover' })
         </div>
       </div>
 
-      <div class="mb-10 flex justify-center">
+      <div class="flex justify-center">
         <NuxtLink
           to="/collection"
           class="inline-flex items-center justify-center min-w-[200px] px-5 py-2.5 bg-shelf hover:bg-groove border border-jacket rounded-lg text-pressing text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-groove focus:ring-offset-2 focus:ring-offset-void"
@@ -199,12 +200,18 @@ useHead({ title: 'Discover' })
           Browse collection
         </NuxtLink>
       </div>
-
-      <div v-if="username && insight" class="mt-8 rounded-xl bg-cabinet border border-shelf p-6">
-        <h2 class="text-xl font-bold tracking-[-0.01em] text-pressing mb-3">Adam&apos;s music personality</h2>
-        <p class="text-sleeve leading-relaxed text-pretty whitespace-pre-line">{{ insight }}</p>
-        <p class="text-xs text-dust italic mt-4">A quick read on the collection, AI-generated.</p>
-      </div>
     </div>
+
+    <section
+      v-if="username && insight"
+      class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24 w-full border-t border-jacket/40"
+    >
+      <div class="pt-12 max-w-[70ch] mx-auto">
+        <p class="text-sm font-semibold uppercase tracking-[0.08em] text-label mb-4">About the collection</p>
+        <p class="text-xl sm:text-2xl leading-snug tracking-[-0.01em] text-pretty whitespace-pre-line text-pressing">
+          {{ insight }}
+        </p>
+      </div>
+    </section>
   </div>
 </template>

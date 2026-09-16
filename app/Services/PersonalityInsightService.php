@@ -86,9 +86,10 @@ class PersonalityInsightService
 
         return "A record collection is dominated by the following. {$musicDescription} "
             .'Based only on these musical preferences, write a short paragraph (3-4 sentences) summarizing '
-            .'the overall vibe and character of this collection and what it suggests about the kind of listener '
-            .'who owns it. Synthesize an overall impression rather than listing the genres or styles back out by name. '
-            .'Do not use a specific name — refer to "this collection" or "this listener". '
+            .'the overall vibe and character of the collection itself — its range, depth, and the eras or scenes '
+            .'it leans into. Synthesize an overall impression rather than listing the genres or styles back out by name. '
+            .'Describe the collection, not the person who owns it — do not speculate about a listener\'s personality, '
+            .'habits, or character. Refer to "this collection", never "this listener". '
             .'Keep it concise and make sure the paragraph is a complete thought that does not trail off. '
             .'Do not add any preamble.';
     }
