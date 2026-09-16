@@ -53,7 +53,7 @@ describe('home page', () => {
     expect(wrapper.find('a[href="/random"]').exists()).toBe(true)
     expect(wrapper.find('a[href="/collection"]').exists()).toBe(true)
 
-    expect(wrapper.text()).toContain("Adam's music personality")
+    expect(wrapper.text()).toContain('About the collection')
     expect(wrapper.text()).toContain('A listener who values depth and atmosphere.')
   })
 
@@ -110,7 +110,7 @@ describe('home page', () => {
     expect(wrapper.text()).toContain('No collection synced yet')
     expect(wrapper.find('form').exists()).toBe(false)
     expect(wrapper.find('a[href="/random"]').exists()).toBe(false)
-    expect(wrapper.text()).not.toContain("Adam's music personality")
+    expect(wrapper.text()).not.toContain('About the collection')
   })
 
   it('surfaces an API failure with a retry', async () => {

@@ -12,6 +12,6 @@ test.describe('Home', () => {
         await expect(page.getByPlaceholder(/dark moody post-punk/i)).toBeVisible();
         await expect(page.getByRole('button', { name: 'Find it' })).toBeVisible();
 
-        await expect(page.getByRole('heading', { name: "Adam's music personality" })).toBeVisible();
+        await expect(page.getByText('About the collection')).toBeVisible();
     });
 });
