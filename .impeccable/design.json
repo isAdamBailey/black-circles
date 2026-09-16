@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-06-30T00:00:00Z",
+  "generatedAt": "2026-09-15T23:48:56Z",
   "title": "Design System: Black Circles",
   "extensions": {
     "colorMeta": {
       "void":               { "role": "neutral", "displayName": "Void",    "canonical": "oklch(7% 0.01 264)",   "tonalRamp": ["#030712","#080f20","#0e1730","#141f40","#1a2850","#223064","#2d3d7a","#3c508e"] },
       "cabinet":            { "role": "neutral", "displayName": "Cabinet", "canonical": "oklch(17% 0.02 264)",  "tonalRamp": ["#0a0e1c","#0e1425","#111827","#16202f","#1c2a3e","#253348","#2e3e55","#3a4d66"] },
       "shelf":              { "role": "neutral", "displayName": "Shelf",   "canonical": "oklch(24% 0.02 264)",  "tonalRamp": ["#111620","#161d2a","#1f2937","#26333e","#2e3d4a","#384958","#445669","#526478"] },
-      "groove":             { "role": "neutral", "displayName": "Groove",  "canonical": "oklch(31% 0.02 264)",  "tonalRamp": ["#1a2028","#20293392","#374151","#424e5e","#4e5c6c","#5c6c7d","#6e7f8f","#8292a2"] },
+      "groove":             { "role": "neutral", "displayName": "Groove",  "canonical": "oklch(31% 0.02 264)",  "tonalRamp": ["#1a2028","#202933","#374151","#424e5e","#4e5c6c","#5c6c7d","#6e7f8f","#8292a2"] },
       "jacket":             { "role": "neutral", "displayName": "Jacket",  "canonical": "oklch(39% 0.02 264)",  "tonalRamp": ["#252d38","#2f3845","#3a4453","#4b5563","#58636f","#67727d","#7a8490","#909aa5"] },
       "dust":               { "role": "neutral", "displayName": "Dust",    "canonical": "oklch(50% 0.02 264)",  "tonalRamp": ["#363e4b","#424b58","#525d6b","#6b7280","#7a8190","#8c94a1","#a2aab5","#bcc3cc"] },
       "label":              { "role": "neutral", "displayName": "Label",   "canonical": "oklch(69% 0.02 264)",  "tonalRamp": ["#5a6070","#6b717f","#7c8391","#9ca3af","#adb4be","#bec4cc","#d0d5dc","#e2e6ec"] },
@@ -17,6 +17,7 @@
     },
     "typographyMeta": {
       "display":  { "displayName": "Display",  "purpose": "Page-level hero titles only." },
+      "subhead":  { "displayName": "Subhead",  "purpose": "A page's single promoted primary interaction — e.g. 'Find something to play' on the home page." },
       "headline": { "displayName": "Headline", "purpose": "Section headings, card group titles." },
       "title":    { "displayName": "Title",    "purpose": "Card headings, modal titles, in-page sub-sections." },
       "body":     { "displayName": "Body",     "purpose": "All prose content. Max 65–75ch line length." },
@@ -34,18 +35,26 @@
   },
   "components": [
     {
+      "name": "Accent Button",
+      "kind": "button",
+      "refersTo": "button-accent",
+      "description": "The home page's sole accent surface: the 'Find it' mood-search submit and the 'Random release' action beside it, sharing the same row. Not used anywhere else.",
+      "html": "<button class=\"ds-btn-accent\">Find it</button>",
+      "css": ".ds-btn-accent { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; background: #7c1f25; color: #ffffff; border: none; border-radius: 12px; font-family: Figtree, ui-sans-serif, sans-serif; font-size: 0.875rem; font-weight: 600; line-height: 1; cursor: pointer; transition: background 150ms ease-out; } .ds-btn-accent:hover { background: #c23a42; } .ds-btn-accent:focus-visible { outline: 2px solid #c23a42; outline-offset: 2px; } .ds-btn-accent:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }"
+    },
+    {
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Single primary CTA per view. White on void.",
-      "html": "<button class=\"ds-btn-primary\">Random release</button>",
+      "description": "Form submissions across auth/profile pages. White on void.",
+      "html": "<button class=\"ds-btn-primary\">Save changes</button>",
       "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 24px; background: #ffffff; color: #030712; border: none; border-radius: 6px; font-family: Figtree, ui-sans-serif, sans-serif; font-size: 0.9375rem; font-weight: 600; line-height: 1; cursor: pointer; transition: background 150ms ease-out; } .ds-btn-primary:hover { background: #e5e7eb; } .ds-btn-primary:focus-visible { outline: 2px solid #374151; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }"
     },
     {
       "name": "Secondary Button",
       "kind": "button",
       "refersTo": "button-secondary",
-      "description": "Navigation CTAs, browse actions. Shelf surface with Jacket border.",
+      "description": "The system default everywhere Oxblood doesn't apply: 'Browse collection' on the home page, the repeated 'Random release' entry point on the collection page header, and 'Shuffle again' on release detail pages. Shelf surface with Jacket border.",
       "html": "<button class=\"ds-btn-secondary\">Browse collection</button>",
       "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; padding: 10px 24px; background: #1f2937; color: #ffffff; border: 1px solid #4b5563; border-radius: 6px; font-family: Figtree, ui-sans-serif, sans-serif; font-size: 0.9375rem; font-weight: 600; line-height: 1; cursor: pointer; transition: background 150ms ease-out, border-color 150ms ease-out; } .ds-btn-secondary:hover { background: #374151; border-color: #6b7280; } .ds-btn-secondary:focus-visible { outline: 2px solid #374151; outline-offset: 2px; } .ds-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }"
     },
@@ -97,27 +106,28 @@
       "Type is functional — one weight family, hierarchy through size and color only"
     ],
     "rules": [
-      { "name": "The Rarity Rule",       "body": "Oxblood appears on ≤5% of any screen. One active nav link, one focus ring, one key label at most.", "section": "colors" },
-      { "name": "The Contrast Mandate",  "body": "Body and supporting prose must use Label (#9ca3af) or brighter. Dust (#6b7280) is permitted only for non-content metadata — never running text.", "section": "colors" },
-      { "name": "The No-Pairing Rule",   "body": "Figtree only, at all times. Introducing a second family breaks the catalogue density the system is calibrated for.", "section": "typography" },
+      { "name": "The Rarity Rule", "body": "Oxblood appears on ≤5% of any screen. One active nav link, one focus ring, one key label at most. If it appears twice on the same view, one instance is wrong.", "section": "colors" },
+      { "name": "The home-page exception", "body": "\"Find it\" and \"Random release\" — the two ways to get a record right now, sitting side by side in the same row — are the one deliberate departure from the Rarity Rule, sharing the Oxblood/Oxblood Bright treatment as the page's signature color. \"Browse collection\" is not part of this exception; it's a quiet Shelf/secondary link, since browsing isn't a decision the page is making for you. Every other page keeps strict rarity: Secondary buttons elsewhere stay Shelf/Groove, and Oxblood does not spread to the collection grid, auth pages, or nav — including the Random release button repeated there, which stays Shelf/secondary.", "section": "colors" },
+      { "name": "The Contrast Mandate", "body": "Body and supporting prose must use Label (#9ca3af) or brighter. Dust (#6b7280) is permitted only for non-content metadata — never running text.", "section": "colors" },
+      { "name": "The No-Pairing Rule", "body": "Figtree only, at all times. Introducing a second family (even a serif for display) breaks the catalogue density the system is calibrated for.", "section": "typography" },
       { "name": "The Uppercase Ceiling", "body": "Uppercase + wide tracking appears only on Label-tier elements (metadata stamps, status markers). Never on buttons, body text, or headings above 12px.", "section": "typography" },
-      { "name": "The No-Shadow Rule",    "body": "box-shadow is prohibited on all product surfaces. Elevation is expressed by background-color step, never by shadow.", "section": "elevation" }
+      { "name": "The No-Shadow Rule", "body": "box-shadow is prohibited on all product surfaces — cards, modals, nav, buttons. Elevation is expressed by background-color step, never by shadow. If you're reaching for a shadow, reach for a darker background instead.", "section": "elevation" }
     ],
     "dos": [
       "Do let album art be the most visually prominent element on any screen. Crop it square; give it space.",
       "Do use tonal elevation (Cabinet → Shelf → Groove) to create depth. Never use box-shadow.",
       "Do treat the Oxblood accent as a signal, not a style. One active state per view at most.",
-      "Do use Label (#9ca3af) as the minimum text color for any prose or supporting copy.",
-      "Do keep the AI invisible. No robot icons, no 'Powered by AI' labels.",
-      "Do embrace density. Let the catalogue be dense — that's what collectors love about Discogs."
+      "Do use Label (#9ca3af) as the minimum text color for any prose or supporting copy — Dust is for non-content metadata only.",
+      "Do keep the AI invisible. Vibe search and mood input are tools. No robot icons, no \"Powered by AI\" labels, no loading theaters that announce the mechanism.",
+      "Do embrace density. The collection is hundreds of records. Let the catalogue be dense — that's what collectors love about Discogs."
     ],
     "donts": [
-      "Don't use Spotify-style visual language: rounded pill cards, green-tinted dark mode, algorithm-surfaced sections.",
+      "Don't use Spotify-style visual language: rounded pill cards, green-tinted dark mode, algorithm-surfaced \"For You\" sections. This is a specialist tool, not a streaming service.",
       "Don't apply a SaaS dashboard aesthetic: no sidebar navigation, no blue primary buttons, no metric cards, no border-left accent stripes on callouts.",
-      "Don't put AI front and center in any UI copy or iconography. The intelligence is a concierge. It does not have a face.",
-      "Don't use box-shadow on any product surface.",
-      "Don't use uppercase tracking on elements above Label tier (12px metadata stamps only).",
-      "Don't let the oxblood accent appear on backgrounds, large text, or more than one element per view.",
+      "Don't put \"AI\" front and center in any UI copy or iconography. The intelligence is a concierge. It does not have a face.",
+      "Don't use box-shadow on any product surface. If you need depth, use a darker background tier.",
+      "Don't use uppercase tracking on elements above Label tier. The tracking-widest uppercase text-xs pattern is reserved for metadata stamps only.",
+      "Don't let the oxblood accent spread beyond the home page's \"Find it\" / \"Random release\" pair and the mood-search input's focus state — that pair is a deliberate, documented exception to rarity, not a precedent. \"Browse collection\" and every other button on every other page (including the repeated Random release and Shuffle again actions) stay Shelf/Groove. Don't reuse Oxblood for other CTAs, badges, or large text on other pages.",
       "Don't use Dust (#6b7280) for body text or any text the user needs to read. It fails 4.5:1 contrast against Void.",
       "Don't introduce a second typeface. Figtree only."
     ]
