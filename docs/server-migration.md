@@ -11,6 +11,39 @@ downtime, and with a way back at every step.
 This document is self-contained. Everything needed to set up the site on the
 new server is below. Don't rely on other deploy docs in the repo.
 
+Progress is tracked on GitHub issue
+[#17](https://github.com/isAdamBailey/black-circles/issues/17). Tick each
+phase's box when its gate passes (`gh issue edit 17 --body ...`, or ask the
+owner to tick it).
+
+## The plan in plain English
+
+Open the session by telling the owner this, in your own words:
+
+> We're moving the website to a new computer, one that still gets security
+> fixes. The old one keeps running the whole time, so the site stays up and
+> we can always go back.
+>
+> 1. **Check the new server** has the right software installed.
+> 2. **Set up an empty copy of the site** on the new server, with the same
+>    settings and passwords as the old one.
+> 3. **Copy the data across**: the record collection database. The search
+>    index gets rebuilt from it.
+> 4. **Test the new copy privately**, before anyone else can reach it.
+> 5. **Flip the switch**: point the domain name at the new server (a DNS
+>    change). That's the only moment visitors notice anything, and they
+>    shouldn't.
+> 6. **Keep the old server for a week or two** as a backup, then delete it.
+>
+> You'll do the clicking in Forge and paste commands into the server. I'll
+> tell you exactly what to click or paste, and what you should see back.
+
+The owner isn't a sysadmin. **Explain every step in plain language.** Say
+what it does and why before giving the instructions. Then say exactly where
+to click or what to paste, and what they should see. If you have to use a
+term like DNS, TTL, daemon, nginx, SSH or swap, explain it in one short
+sentence the first time.
+
 ## How the app runs in production
 
 ```
@@ -142,16 +175,57 @@ mysql --version              # compare with the old server; same major or newer
 lsb_release -d
 free -h                      # if there's no swap, add it before the first deploy (the Nuxt build can run out of memory)
 sudo ss -tlnp | grep -E ':3004|:7700' || echo "3004 and 7700 free"
+sudo -n supervisorctl status >/dev/null && echo "passwordless supervisorctl OK"
 ```
+
+`sudo` asks for the server's sudo password, which Forge showed once when the
+server was created. If the owner doesn't have it, they can reset it in Forge.
+
+- **If the last line doesn't print `OK`**, the deploy script's daemon
+  restart will fail. On the **old** server, run `sudo -l` to see how it was
+  allowed there, and copy that. If there's nothing to copy, run:
+  ```bash
+  echo 'forge ALL=(root) NOPASSWD: /usr/bin/supervisorctl' | sudo tee /etc/sudoers.d/forge-supervisorctl
+  sudo chmod 440 /etc/sudoers.d/forge-supervisorctl && sudo visudo -c
+  ```
+- **If there's no swap**, add 2 GB:
+  ```bash
+  sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+  echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+  ```
 
 - If **3004 is taken**, maybe by another site already moved, choose a free
   port and use it instead of `3004` everywhere below (daemon Command and both
   nginx `proxy_pass` lines). A port collision is confusing to debug: nginx
   reaches *something*, just not this app.
-- If **Meilisearch is missing**, have the owner install it as a systemd
-  service listening on `127.0.0.1:7700`, with a master key if the old server
-  used one. Confirm with `curl -s 127.0.0.1:7700/health` →
-  `{"status":"available"}`.
+- If **Meilisearch is missing**, install it as a service that only listens
+  on the server itself. The owner should make up a new master key of at
+  least 16 characters and keep it out of chat. It goes in the new site's
+  `MEILISEARCH_KEY` in Phase 3.
+  ```bash
+  curl -L https://install.meilisearch.com | sh
+  sudo mv ./meilisearch /usr/local/bin/
+  sudo useradd -d /var/lib/meilisearch -s /bin/false -m -r meilisearch
+  sudo mkdir -p /var/lib/meilisearch/data && sudo chown -R meilisearch: /var/lib/meilisearch
+  read -s -p "Master key: " MK; echo
+  sudo tee /etc/systemd/system/meilisearch.service >/dev/null <<UNIT
+  [Unit]
+  Description=Meilisearch
+  After=network.target
+
+  [Service]
+  User=meilisearch
+  ExecStart=/usr/local/bin/meilisearch --env production --http-addr 127.0.0.1:7700 --db-path /var/lib/meilisearch/data --master-key $MK
+  Restart=always
+
+  [Install]
+  WantedBy=multi-user.target
+  UNIT
+  sudo systemctl daemon-reload && sudo systemctl enable --now meilisearch
+  ```
+  Confirm with `curl -s 127.0.0.1:7700/health` → `{"status":"available"}`.
+  The index is rebuilt from MySQL, so the Meilisearch version doesn't have
+  to match the old server's.
 - On the **old** server, confirm there's nothing to copy:
   `ls -la /home/forge/<domain>/storage/app/{public,private}` should show
   nothing that matters. (The shared `storage/` path may sit under the site
@@ -206,18 +280,20 @@ only changes during the weekly sync or when someone edits Settings.
    mysqldump --single-transaction --no-tablespaces --routines \
      -u <old_db_user> -p <old_db_name> | gzip > ~/black-circles-$(date +%F).sql.gz
    ```
-2. Move the file to the new server, either by `scp` through the owner's
-   machine or by adding the owner's SSH key to both servers in Forge.
+2. Move the file to the new server through the owner's computer. The owner's
+   SSH key must be on both servers (Forge → server → SSH Keys). On the
+   owner's machine:
+   ```bash
+   scp forge@<OLD_IP>:~/black-circles-*.sql.gz . && scp black-circles-*.sql.gz forge@<NEW_IP>:~/
+   ```
 3. On the **new** server:
    ```bash
    gunzip -c ~/black-circles-*.sql.gz | mysql -u <new_db_user> -p <new_db_name>
    ```
 4. Check row counts **on both servers** and compare them:
    ```bash
-   mysql -u <user> -p <db> -e "SELECT 'releases',COUNT(*) FROM discogs_releases UNION ALL SELECT 'items',COUNT(*) FROM discogs_collection_items UNION ALL SELECT 'moods',COUNT(*) FROM moods UNION ALL SELECT 'settings',COUNT(*) FROM settings;"
+   mysql -u <user> -p <db> -e "SELECT 'releases',COUNT(*) FROM discogs_releases UNION ALL SELECT 'items',COUNT(*) FROM discogs_collection_items UNION ALL SELECT 'moods',COUNT(*) FROM moods UNION ALL SELECT 'vibe_intents',COUNT(*) FROM vibe_intents UNION ALL SELECT 'settings',COUNT(*) FROM settings;"
    ```
-   If a table name doesn't match, have the owner run `SHOW TABLES;` and fix
-   the query. Don't guess.
 
 🚧 Gate: the counts match.
 
@@ -238,8 +314,11 @@ only changes during the weekly sync or when someone edits Settings.
    server should return `200`. Note the daemon's **new** id, then uncomment
    the `supervisorctl restart daemon-<id>:*` line in the deploy script with
    that id.
-4. **Queue worker:** connection `database`, default queue. **Scheduler:**
-   enable Forge's Laravel scheduler (`artisan schedule:run` every minute).
+4. **Queue worker:** copy the settings from the old site's queue worker
+   (connection `database`, plus its timeout, sleep and tries). If the
+   timeout is shorter than the sync takes, `discogs:sync` gets killed partway
+   through. **Scheduler:** enable Forge's Laravel scheduler, which runs
+   `artisan schedule:run` every minute.
 5. **nginx.** Apply the [nginx config](#nginx-config). Then run
    `sudo nginx -t && sudo service nginx reload`.
 6. Deploy once more, so the daemon restart line is tested.
@@ -258,9 +337,16 @@ curl -s --resolve <domain>:80:<NEW_IP> http://<domain>/api/v1/home | head -c 300
 curl -s --resolve <domain>:80:<NEW_IP> http://<domain>/ | grep -c '__nuxt'                     # ≥1
 ```
 
-To prove Meilisearch works, find the collection search route with
-`php artisan route:list --path=api`, then call it with a search term the
-same way.
+**Search needs its own check.** `/api/v1/collection/search?q=...` quietly
+falls back to a plain database query if Meilisearch fails, so a working
+search result doesn't prove Meilisearch works. Check the index directly on
+the new server, from `/home/forge/<domain>/current`:
+
+```bash
+KEY=$(grep '^MEILISEARCH_KEY=' .env | cut -d= -f2- | tr -d '"')
+curl -s -H "Authorization: Bearer $KEY" 127.0.0.1:7700/indexes | grep -o '"uid":"[^"]*"'
+curl -s -H "Authorization: Bearer $KEY" 127.0.0.1:7700/indexes/<uid>/stats   # numberOfDocuments ≈ discogs_releases count
+```
 
 If Forge has already put an HTTP→HTTPS redirect on the site, these return
 301. In that case go to Phase 7 first and test with `--resolve
@@ -464,4 +550,5 @@ and `server_name`.
 | Site shows another app's content | Port collision | Same as above: pick a free port, then update the daemon and nginx |
 | Deploy ends with `Killed` | Out of memory during `npm ci` or the build | Add swap, or set `NODE_OPTIONS=--max-old-space-size=...` |
 | `composer install` platform error about PHP | `composer.json` still says `~8.3.0` | Phase 0 step 1 wasn't merged or deployed |
-| Search returns nothing | Index not rebuilt, or wrong `MEILISEARCH_KEY` | Re-run the `scout:` commands from Phase 5. Check `curl 127.0.0.1:7700/health` |
+| Search returns nothing, or results seem off (database fallback) | Index not rebuilt, or wrong `MEILISEARCH_KEY` | Re-run the `scout:` commands from Phase 5. Check the index stats (Phase 6) |
+| Deploy fails at `sudo supervisorctl` asking for a password | `forge` can't restart Supervisor without a password | Add the sudoers entry from Phase 1 |
