@@ -14,7 +14,7 @@ A Laravel API + Nuxt 4 application to display, explore, and understand your [Dis
 
 ## Tech Stack
 
-Laravel 13 (PHP 8.3) JSON API, Nuxt 4 (TypeScript, Tailwind) SPA in [`frontend/`](frontend/), MySQL 8.4, Meilisearch (Scout), [Discogs API](https://www.discogs.com/developers/).
+Laravel 13 (PHP 8.5) JSON API, Nuxt 4 (TypeScript, Tailwind) SPA in [`frontend/`](frontend/), MySQL 8.4, Meilisearch (Scout), [Discogs API](https://www.discogs.com/developers/).
 
 ## AI Models
 

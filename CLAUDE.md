@@ -70,7 +70,7 @@ php artisan personality:generate      # regenerate AI personality insight
 
 ## Architecture
 
-### Backend (Laravel 13, PHP 8.3)
+### Backend (Laravel 13, PHP 8.5)
 
 - `app/Http/Controllers/Api/V1/` — thin controllers; most logic is in services
   - `HomeController` — moods list + personality insight
