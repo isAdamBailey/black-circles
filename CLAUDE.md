@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this app is
 
-Black Circles is a Laravel API + Nuxt 4 (TypeScript SPA) app to explore a Discogs vinyl record collection with AI features — mood-based browsing, plain-English "vibe" search, and a personality profile generated from listening history. It uses Meilisearch (via Laravel Scout) for full-text search and Hugging Face-hosted models for AI inference.
+Black Circles is a Laravel API + Nuxt 4 (TypeScript SPA) app to explore a Discogs vinyl record collection with AI features — mood-based browsing, plain-English "vibe" search, and a personality profile generated from listening history. It uses Meilisearch (via Laravel Scout) for full-text search and Claude (Anthropic API) for AI features.
 
 Laravel is a JSON API only (`routes/api.php`, prefixed `/api/v1`) — it has no pages of its own. [`frontend/`](frontend/) (Nuxt 4) is the only UI. This split happened in the migration tracked by issue #5 (Inertia → Nuxt); see [`DEPLOY.md`](DEPLOY.md) for the production Forge topology.
 
@@ -80,7 +80,9 @@ php artisan personality:generate      # regenerate AI personality insight
 - `app/Http/Resources/` — API Resources shaping the JSON responses (`MoodResource`, `ReleaseResource`, `ReleaseSummaryResource`, `SuggestionResource`, `HomeResource`, `CollectionIndexResource`)
 - `app/Services/` — all business logic lives here
   - `DiscogsService` — syncs releases and collection items from Discogs API
-  - `HuggingFaceService` — wraps HF inference API calls
+  - `ClaudeService` — thin wrapper around the Anthropic PHP SDK (model, effort, timeouts, refusal fallback, error handling); never throws to callers
+  - `VibeTagSelector` — asks Claude to pick genres/styles for a free-text vibe from the collection's own tag lists (validated, cached per prompt for a day), falling back to `MoodKeywordMatcher`
+  - `MoodKeywordMatcher` — keyword/dictionary fallback for vibe tags when Claude is unavailable
   - `VibeSuggestionService` — builds mood/vibe suggestions (matching + ranking)
   - `CollectionQueryService` — shared filter/sort logic for the collection endpoints
   - `ReleaseSuggestionService` — mood-to-release matching
@@ -99,14 +101,16 @@ Vibe search (`POST /api/v1/vibe/suggest`) and mood suggestions are synchronous �
 - `ssr: false` — every page fetches its own data client-side with `useAsyncData(..., { lazy: true })` plus a skeleton/error state; there is no server-rendered pass, only a Node process serving the built SPA shell + static assets in production (see DEPLOY.md)
 - Tailwind CSS v4 via `@tailwindcss/vite`
 
-### AI models (Hugging Face Inference API)
+### AI (Claude via the Anthropic PHP SDK)
 
-| Feature | Model |
+Both features use `claude-opus-5-5` at `low` effort through `ClaudeService`. `ClaudeService` builds the SDK client per call with a Guzzle transport that enforces the timeout (the SDK itself doesn't). Its Guzzle `HandlerStack` comes from a contextual binding in `AppServiceProvider`; tests swap it for a mock via `TestCase::fakeClaude()` and never call the real API.
+
+| Feature | How Claude is used |
 |---|---|
-| Vibe / mood search | `MoritzLaurer/deberta-v3-base-zeroshot-v2.0` (zero-shot classification) |
-| Personality insight | `Qwen/Qwen2.5-1.5B-Instruct` (instruction-tuned LLM) |
+| Personality insight | `PersonalityInsightService` sends the top styles/genres and saves the paragraph (`personality:generate`) |
+| Vibe search | In `VibeSuggestionService`'s non-preset branch, `VibeTagSelector` asks for genres/styles/exclusions as structured JSON (9 s timeout, no retries). Results are intersected with the collection's tags, then go through `fetchMatchingReleases` → merge with the Scout pool → `ReleaseRanker`. On no key, error, timeout or no usable tags it falls back to `MoodKeywordMatcher`; after an outage-type failure (connection, timeout, 5xx, 429) `ClaudeService::isAvailable()` reports false for 60 s, so vibe search skips Claude. `POST /vibe/suggest` is rate-limited to 20/min per IP (`throttle:vibe`). Mood presets with tags never call Claude |
 
-Set `HUGGINGFACE_API_TOKEN` to enable these features.
+Set `ANTHROPIC_API_KEY` to enable these features. Without it, personality generation is skipped and vibe search is keyword-only.
 
 ### Infrastructure
 

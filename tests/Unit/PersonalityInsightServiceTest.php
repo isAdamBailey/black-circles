@@ -3,10 +3,10 @@
 use App\Models\DiscogsCollectionItem;
 use App\Models\DiscogsRelease;
 use App\Services\PersonalityInsightService;
-use Illuminate\Support\Facades\Http;
+use GuzzleHttp\Psr7\Response;
 
 beforeEach(function () {
-    config(['services.huggingface.token' => 'test-token']);
+    config(['services.anthropic.key' => 'test-key']);
 });
 
 it('builds a prompt from top styles and genres', function () {
@@ -42,13 +42,9 @@ it('builds a valid prompt with only styles and no genres', function () {
         ->and($prompt)->not->toContain('Genres:');
 });
 
-it('generates personality insight via huggingface text generation', function () {
-    Http::fake([
-        'router.huggingface.co/*' => Http::response([
-            'choices' => [
-                ['message' => ['content' => 'This collection reveals a creative and introspective listener.']],
-            ],
-        ], 200),
+it('generates personality insight via claude', function () {
+    $history = $this->fakeClaude([
+        claudeMessage('This collection leans into dark, angular guitar music.'),
     ]);
 
     $service = app(PersonalityInsightService::class);
@@ -57,16 +53,21 @@ it('generates personality insight via huggingface text generation', function () 
         [['name' => 'Rock', 'count' => 3]]
     );
 
-    expect($result)->toBe('This collection reveals a creative and introspective listener.');
+    $body = claudeRequestBody($history);
+    expect($result)->toBe('This collection leans into dark, angular guitar music.')
+        ->and($history)->toHaveCount(1)
+        ->and($body['model'])->toBe('claude-opus-5-5')
+        ->and($body['output_config'])->toBe(['effort' => 'low'])
+        ->and($body['fallbacks'])->toBe('default')
+        ->and($body['system'])->toContain('this collection')
+        ->and($body['messages'][0]['content'])->toContain('Post-Punk')
+        ->and($body)->not->toHaveKey('thinking')
+        ->and($history[0]['request']->getHeaderLine('anthropic-beta'))->toBe('server-side-fallback-2026-07-01');
 });
 
 it('trims a response that is cut off mid-sentence back to the last complete sentence', function () {
-    Http::fake([
-        'router.huggingface.co/*' => Http::response([
-            'choices' => [
-                ['message' => ['content' => 'This collection favors moody, atmospheric records. It suggests a listener who enjoys long, unhurried']],
-            ],
-        ], 200),
+    $this->fakeClaude([
+        claudeMessage('This collection favors moody, atmospheric records. It leans toward long, unhurried'),
     ]);
 
     $service = app(PersonalityInsightService::class);
@@ -76,6 +77,27 @@ it('trims a response that is cut off mid-sentence back to the last complete sent
     );
 
     expect($result)->toBe('This collection favors moody, atmospheric records.');
+});
+
+it('returns empty string when claude fails', function (Response $response) {
+    $this->fakeClaude([$response]);
+
+    $result = app(PersonalityInsightService::class)->generatePersonalityInsight([['name' => 'Post-Punk', 'count' => 5]]);
+
+    expect($result)->toBe('');
+})->with([
+    'api error' => [claudeError(400)],
+    'refusal' => [claudeMessage('', 'refusal')],
+]);
+
+it('returns empty string without calling claude when no api key is configured', function () {
+    config(['services.anthropic.key' => '']);
+    $history = $this->fakeClaude([claudeMessage('Should not be used.')]);
+
+    $result = app(PersonalityInsightService::class)->generatePersonalityInsight([['name' => 'Post-Punk', 'count' => 5]]);
+
+    expect($result)->toBe('')
+        ->and($history)->toHaveCount(0);
 });
 
 it('returns empty string when styles and genres are empty', function () {

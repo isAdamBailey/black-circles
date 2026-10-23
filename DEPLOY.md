@@ -309,7 +309,7 @@ SCOUT_DRIVER=meilisearch
 MEILISEARCH_HOST=http://127.0.0.1:7700
 DISCOGS_USERNAME=
 DISCOGS_TOKEN=
-HUGGINGFACE_API_TOKEN=
+ANTHROPIC_API_KEY=
 VITE_GOOGLE_TAG_ID=                  # optional — GA4 measurement ID, see below
 ```
 

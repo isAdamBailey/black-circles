@@ -18,7 +18,7 @@ class VibeSuggestionService
     private const OUTPUT_COUNT = 5;
 
     public function __construct(
-        private MoodKeywordMatcher $keywordMatcher,
+        private VibeTagSelector $tagSelector,
         private ReleaseRanker $ranker,
         private ReleaseSuggestionService $releases
     ) {}
@@ -52,12 +52,12 @@ class VibeSuggestionService
 
         $tagPool = collect();
         if (! empty($allGenres) || ! empty($allStyles)) {
-            $partitioned = $this->keywordMatcher->matchTags($prompt, $allGenres, $allStyles);
+            $partitioned = $this->tagSelector->selectTags($prompt, $allGenres, $allStyles);
             if (! empty($partitioned['genres']) || ! empty($partitioned['styles'])) {
                 $tagPool = $this->releases->fetchMatchingReleases(
                     $partitioned['genres'],
                     $partitioned['styles'],
-                    [],
+                    $partitioned['exclude_styles'],
                     self::TAG_POOL_LIMIT
                 );
             }

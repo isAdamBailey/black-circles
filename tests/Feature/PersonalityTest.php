@@ -3,40 +3,56 @@
 use App\Models\DiscogsCollectionItem;
 use App\Models\DiscogsRelease;
 use App\Models\Setting;
-use Illuminate\Support\Facades\Http;
 
-it('personality:generate stores insight in settings', function () {
-    config(['services.huggingface.token' => 'test-token']);
-
-    Http::fake([
-        'router.huggingface.co/*' => Http::response([
-            'choices' => [
-                ['message' => ['content' => 'This collection suggests an adventurous, open-minded listener.']],
-            ],
-        ], 200),
-    ]);
-
+function seedPostPunkCollection(): void
+{
     $release = DiscogsRelease::factory()
         ->withGenres(['Rock'])
         ->withStyles(['Post-Punk'])
         ->create();
     DiscogsCollectionItem::factory()->for($release, 'release')->create();
+}
 
-    $this->artisan('personality:generate')->assertExitCode(0);
+it('personality:generate stores insight in settings', function () {
+    config(['services.anthropic.key' => 'test-key']);
+    $this->fakeClaude([
+        claudeMessage('This collection is built on wiry, restless post-punk.'),
+    ]);
+    seedPostPunkCollection();
 
-    expect(Setting::get('personality_insight'))->toBe('This collection suggests an adventurous, open-minded listener.');
+    $this->artisan('personality:generate')
+        ->expectsOutput('Insight saved.')
+        ->assertExitCode(0);
+
+    expect(Setting::get('personality_insight'))->toBe('This collection is built on wiry, restless post-punk.');
 });
 
-it('personality:generate skips when no huggingface token configured', function () {
-    config(['services.huggingface.token' => '']);
+it('personality:generate fails and keeps the old insight when the claude api errors', function () {
+    config(['services.anthropic.key' => 'test-key']);
+    $this->fakeClaude([claudeError(400)]);
+    seedPostPunkCollection();
+    Setting::set('personality_insight', 'Previous insight.');
 
-    $this->artisan('personality:generate')->assertExitCode(0);
+    $this->artisan('personality:generate')->assertExitCode(1);
 
-    expect(Setting::get('personality_insight'))->toBeNull();
+    expect(Setting::get('personality_insight'))->toBe('Previous insight.');
+});
+
+it('personality:generate skips when no anthropic api key configured', function () {
+    config(['services.anthropic.key' => '']);
+    $history = $this->fakeClaude([]);
+    seedPostPunkCollection();
+
+    $this->artisan('personality:generate')
+        ->expectsOutput('No Anthropic API key configured. Skipping.')
+        ->assertExitCode(0);
+
+    expect(Setting::get('personality_insight'))->toBeNull()
+        ->and($history)->toHaveCount(0);
 });
 
 it('personality:generate skips when collection is empty', function () {
-    config(['services.huggingface.token' => 'test-token']);
+    config(['services.anthropic.key' => 'test-key']);
 
     $this->artisan('personality:generate')->assertExitCode(0);
 

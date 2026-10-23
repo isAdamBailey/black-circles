@@ -18,11 +18,12 @@ Laravel 13 (PHP 8.5) JSON API, Nuxt 4 (TypeScript, Tailwind) SPA in [`frontend/`
 
 ## AI Models
 
-Mood and vibe search are matched locally (genre/style/title keyword matching), no AI involved.
+Both AI features use Claude (`claude-opus-5-5`) through the official Anthropic PHP SDK. Mood presets are matched locally against their curated genres and styles, with no AI involved.
 
-| Feature | Model |
+| Feature | How it works |
 |---|---|
-| Personality insight | `Qwen/Qwen2.5-1.5B-Instruct` — instruction-tuned LLM |
+| Vibe search | Claude picks genres and styles from the collection's own tag lists that fit a plain-English prompt. Without a key, or if the call fails, it falls back to local keyword matching |
+| Personality insight | Claude writes a short paragraph about the collection from its top styles and genres |
 
 ## Running locally
 
@@ -80,7 +81,7 @@ Until you sync, grids and AI suggestions have nothing to match against.
 |---|---|---|
 | `DISCOGS_USERNAME` | For automated / scheduled sync | Your public Discogs username; you can also pass username to `discogs:sync` |
 | `DISCOGS_TOKEN` | No | Improves Discogs rate limits — [discogs.com/settings/developers](https://www.discogs.com/settings/developers) |
-| `HUGGINGFACE_API_TOKEN` | No | **Personality** insight — [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) (Read scope is enough) |
+| `ANTHROPIC_API_KEY` | No | **Personality** insight and Claude-assisted **vibe** search — [platform.claude.com/settings/keys](https://platform.claude.com/settings/keys). Without it, vibe search falls back to keyword matching |
 
 ### If you are not using this repo’s `docker-compose.yml`
 
