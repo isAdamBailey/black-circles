@@ -108,7 +108,7 @@ Both features use `claude-opus-5-5` at `low` effort through `ClaudeService`. `Cl
 | Feature | How Claude is used |
 |---|---|
 | Personality insight | `PersonalityInsightService` sends the top styles/genres and saves the paragraph (`personality:generate`) |
-| Vibe search | In `VibeSuggestionService`'s non-preset branch, `VibeTagSelector` asks for genres/styles/exclusions as structured JSON (9 s timeout, no retries). Results are intersected with the collection's tags, then go through `fetchMatchingReleases` → merge with the Scout pool → `ReleaseRanker`. On no key, error, timeout or no usable tags it falls back to `MoodKeywordMatcher`; after a failed call it skips Claude for 60 s. Mood presets with tags never call Claude |
+| Vibe search | In `VibeSuggestionService`'s non-preset branch, `VibeTagSelector` asks for genres/styles/exclusions as structured JSON (9 s timeout, no retries). Results are intersected with the collection's tags, then go through `fetchMatchingReleases` → merge with the Scout pool → `ReleaseRanker`. On no key, error, timeout or no usable tags it falls back to `MoodKeywordMatcher`; after an outage-type failure (connection, timeout, 5xx, 429) `ClaudeService::isAvailable()` reports false for 60 s, so vibe search skips Claude. `POST /vibe/suggest` is rate-limited to 20/min per IP (`throttle:vibe`). Mood presets with tags never call Claude |
 
 Set `ANTHROPIC_API_KEY` to enable these features. Without it, personality generation is skipped and vibe search is keyword-only.
 

@@ -5,10 +5,15 @@ namespace App\Services;
 use Anthropic\Beta\AnthropicBeta;
 use Anthropic\Beta\Messages\BetaMessage;
 use Anthropic\Client;
+use Anthropic\Core\Exceptions\APIConnectionException;
+use Anthropic\Core\Exceptions\InternalServerException;
+use Anthropic\Core\Exceptions\RateLimitException;
 use Anthropic\Messages\Model;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\HandlerStack;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Psr\Http\Client\ClientExceptionInterface;
 
 class ClaudeService
 {
@@ -22,6 +27,11 @@ class ClaudeService
 
     private const DEFAULT_MAX_RETRIES = 2;
 
+    // After an outage-type failure (connection, timeout, 5xx, 429), report Claude unavailable for a while.
+    private const UNAVAILABLE_KEY = 'claude:unavailable';
+
+    private const UNAVAILABLE_SECONDS = 60;
+
     /**
      * The Guzzle handler stack is injected (bound in AppServiceProvider) so tests can swap in a mock.
      */
@@ -32,6 +42,15 @@ class ClaudeService
     public function isConfigured(): bool
     {
         return ! empty(config('services.anthropic.key'));
+    }
+
+    /**
+     * Configured and not in the cool-down after an outage. Latency-sensitive callers should check this
+     * so an outage doesn't add the full timeout to every request.
+     */
+    public function isAvailable(): bool
+    {
+        return $this->isConfigured() && ! Cache::has(self::UNAVAILABLE_KEY);
     }
 
     /**
@@ -108,6 +127,13 @@ class ClaudeService
             );
         } catch (\Throwable $e) {
             Log::warning('Claude request failed', ['exception' => $e::class, 'message' => $e->getMessage()]);
+
+            if ($e instanceof APIConnectionException
+                || $e instanceof InternalServerException
+                || $e instanceof RateLimitException
+                || $e instanceof ClientExceptionInterface) {
+                Cache::put(self::UNAVAILABLE_KEY, true, self::UNAVAILABLE_SECONDS);
+            }
 
             return null;
         }

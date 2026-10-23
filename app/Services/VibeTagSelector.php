@@ -16,10 +16,8 @@ class VibeTagSelector
 
     private const CACHE_TTL_SECONDS = 86400;
 
-    // After a failed call, skip Claude for a while so an outage doesn't add the timeout to every search.
-    private const UNAVAILABLE_KEY = 'vibe-tags:claude-unavailable';
-
-    private const UNAVAILABLE_SECONDS = 60;
+    // Bump when the prompt or schema changes so cached choices from the old version aren't reused.
+    private const CACHE_VERSION = 1;
 
     private const SCHEMA = [
         'type' => 'object',
@@ -65,7 +63,7 @@ class VibeTagSelector
      */
     private function claudeTags(string $prompt, array $allGenres, array $allStyles): ?array
     {
-        if (Cache::has(self::UNAVAILABLE_KEY)) {
+        if (! $this->claude->isAvailable()) {
             return null;
         }
 
@@ -84,8 +82,6 @@ class VibeTagSelector
             self::MAX_RETRIES
         );
         if ($response === null) {
-            Cache::put(self::UNAVAILABLE_KEY, true, self::UNAVAILABLE_SECONDS);
-
             return null;
         }
 
@@ -138,6 +134,6 @@ class VibeTagSelector
      */
     private function cacheKey(string $prompt, array $allGenres, array $allStyles): string
     {
-        return 'vibe-tags:'.md5(Str::squish(mb_strtolower($prompt)).'|'.implode(',', $allGenres).'|'.implode(',', $allStyles));
+        return 'vibe-tags:v'.self::CACHE_VERSION.':'.md5(Str::squish(mb_strtolower($prompt)).'|'.implode(',', $allGenres).'|'.implode(',', $allStyles));
     }
 }

@@ -8,23 +8,23 @@ beforeEach(function () {
     config(['services.anthropic.key' => 'test-key']);
 });
 
-const GENRES = ['Jazz', 'Rock'];
-const STYLES = ['Ambient', 'Punk'];
+const VIBE_GENRES = ['Jazz', 'Rock'];
+const VIBE_STYLES = ['Ambient', 'Punk'];
 
-function claudeTags(array $genres, array $styles, array $excludeStyles = []): ResponseInterface
+function vibeTagsResponse(array $genres, array $styles, array $excludeStyles = []): ResponseInterface
 {
     return claudeMessage(json_encode(['genres' => $genres, 'styles' => $styles, 'exclude_styles' => $excludeStyles]));
 }
 
-function selectTags(string $prompt): array
+function selectVibeTags(string $prompt): array
 {
-    return app(VibeTagSelector::class)->selectTags($prompt, GENRES, STYLES);
+    return app(VibeTagSelector::class)->selectTags($prompt, VIBE_GENRES, VIBE_STYLES);
 }
 
 it('returns the genres and styles claude picks from the collection lists', function () {
-    $history = $this->fakeClaude([claudeTags(['Jazz'], ['Ambient'], ['Punk'])]);
+    $history = $this->fakeClaude([vibeTagsResponse(['Jazz'], ['Ambient'], ['Punk'])]);
 
-    $tags = selectTags('rainy sunday morning');
+    $tags = selectVibeTags('rainy sunday morning');
 
     $body = claudeRequestBody($history);
     expect($tags)->toBe(['genres' => ['Jazz'], 'styles' => ['Ambient'], 'exclude_styles' => ['Punk']])
@@ -36,25 +36,25 @@ it('returns the genres and styles claude picks from the collection lists', funct
 });
 
 it('drops tags that are not in the collection', function () {
-    $this->fakeClaude([claudeTags(['Jazz', 'Vaporwave'], ['Lo-Fi', 'Ambient'], ['Polka'])]);
+    $this->fakeClaude([vibeTagsResponse(['Jazz', 'Vaporwave'], ['Lo-Fi', 'Ambient'], ['Polka'])]);
 
-    expect(selectTags('rainy sunday morning'))->toBe(['genres' => ['Jazz'], 'styles' => ['Ambient'], 'exclude_styles' => []]);
+    expect(selectVibeTags('rainy sunday morning'))->toBe(['genres' => ['Jazz'], 'styles' => ['Ambient'], 'exclude_styles' => []]);
 });
 
 it('never excludes a style it also selected', function () {
-    $this->fakeClaude([claudeTags([], ['Ambient'], ['Ambient', 'Punk'])]);
+    $this->fakeClaude([vibeTagsResponse([], ['Ambient'], ['Ambient', 'Punk'])]);
 
-    expect(selectTags('drifting')['exclude_styles'])->toBe(['Punk']);
+    expect(selectVibeTags('drifting')['exclude_styles'])->toBe(['Punk']);
 });
 
 it('falls back to the keyword matcher when claude has nothing usable', function (string $key, array $responses) {
     config(['services.anthropic.key' => $key]);
     $this->fakeClaude($responses);
     $prompt = 'something jazzy and chill';
-    $keywordTags = app(MoodKeywordMatcher::class)->matchTags($prompt, GENRES, STYLES);
+    $keywordTags = app(MoodKeywordMatcher::class)->matchTags($prompt, VIBE_GENRES, VIBE_STYLES);
 
     expect($keywordTags['genres'])->not->toBeEmpty()
-        ->and(selectTags($prompt))->toBe([...$keywordTags, 'exclude_styles' => []]);
+        ->and(selectVibeTags($prompt))->toBe([...$keywordTags, 'exclude_styles' => []]);
 })->with([
     'no key' => ['', []],
     'api error' => ['test-key', [claudeError(500)]],
@@ -62,34 +62,44 @@ it('falls back to the keyword matcher when claude has nothing usable', function 
     'refusal' => ['test-key', [claudeMessage('', 'refusal')]],
     'truncated' => ['test-key', [claudeMessage('{"genres": ["Ja', 'max_tokens')]],
     'not json' => ['test-key', [claudeMessage('Jazz, Ambient')]],
-    'no usable tags' => ['test-key', [claudeTags(['Vaporwave'], [])]],
+    'no usable tags' => ['test-key', [vibeTagsResponse(['Vaporwave'], [])]],
 ]);
 
 it('does not retry a failed call', function () {
-    $history = $this->fakeClaude([claudeError(500), claudeTags(['Jazz'], [])]);
+    $history = $this->fakeClaude([claudeError(500), vibeTagsResponse(['Jazz'], [])]);
 
-    selectTags('rainy sunday morning');
+    selectVibeTags('rainy sunday morning');
 
     expect($history)->toHaveCount(1);
 });
 
-it('skips claude for a minute after a failed call', function () {
-    $history = $this->fakeClaude([claudeTimeout(), claudeTags(['Jazz'], [])]);
+it('skips claude for a minute after an outage', function () {
+    $history = $this->fakeClaude([claudeTimeout(), vibeTagsResponse(['Jazz'], [])]);
 
-    selectTags('rainy sunday morning');
-    selectTags('late night drive');
+    selectVibeTags('rainy sunday morning');
+    selectVibeTags('late night drive');
     $this->travel(61)->seconds();
-    $tags = selectTags('late night drive');
+    $tags = selectVibeTags('late night drive');
+
+    expect($history)->toHaveCount(2)
+        ->and($tags['genres'])->toBe(['Jazz']);
+});
+
+it('keeps using claude after a prompt-specific failure', function () {
+    $history = $this->fakeClaude([claudeMessage('', 'refusal'), vibeTagsResponse(['Jazz'], [])]);
+
+    selectVibeTags('rainy sunday morning');
+    $tags = selectVibeTags('late night drive');
 
     expect($history)->toHaveCount(2)
         ->and($tags['genres'])->toBe(['Jazz']);
 });
 
 it('caches choices per normalised prompt', function () {
-    $history = $this->fakeClaude([claudeTags(['Jazz'], [])]);
+    $history = $this->fakeClaude([vibeTagsResponse(['Jazz'], [])]);
 
-    $first = selectTags('Rainy  Sunday morning');
-    $second = selectTags(' rainy sunday MORNING ');
+    $first = selectVibeTags('Rainy  Sunday morning');
+    $second = selectVibeTags(' rainy sunday MORNING ');
 
     expect($second)->toBe($first)
         ->and($history)->toHaveCount(1);

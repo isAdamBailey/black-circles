@@ -11,7 +11,9 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/moods/{mood}/suggest', [MoodController::class, 'suggest'])->name('api.moods.suggest');
 
-    Route::post('/vibe/suggest', [VibeController::class, 'suggest'])->name('api.vibe.suggest');
+    Route::post('/vibe/suggest', [VibeController::class, 'suggest'])
+        ->middleware('throttle:vibe')
+        ->name('api.vibe.suggest');
 
     Route::get('/collection', [CollectionController::class, 'index'])->name('api.collection.index');
     Route::get('/collection/search', [CollectionController::class, 'search'])->name('api.collection.search');

@@ -4,7 +4,7 @@ use App\Models\DiscogsCollectionItem;
 use App\Models\DiscogsRelease;
 use App\Models\Setting;
 
-function seedPersonalityCollection(): void
+function seedPostPunkCollection(): void
 {
     $release = DiscogsRelease::factory()
         ->withGenres(['Rock'])
@@ -18,7 +18,7 @@ it('personality:generate stores insight in settings', function () {
     $this->fakeClaude([
         claudeMessage('This collection is built on wiry, restless post-punk.'),
     ]);
-    seedPersonalityCollection();
+    seedPostPunkCollection();
 
     $this->artisan('personality:generate')
         ->expectsOutput('Insight saved.')
@@ -30,7 +30,7 @@ it('personality:generate stores insight in settings', function () {
 it('personality:generate fails and keeps the old insight when the claude api errors', function () {
     config(['services.anthropic.key' => 'test-key']);
     $this->fakeClaude([claudeError(400)]);
-    seedPersonalityCollection();
+    seedPostPunkCollection();
     Setting::set('personality_insight', 'Previous insight.');
 
     $this->artisan('personality:generate')->assertExitCode(1);
@@ -41,7 +41,7 @@ it('personality:generate fails and keeps the old insight when the claude api err
 it('personality:generate skips when no anthropic api key configured', function () {
     config(['services.anthropic.key' => '']);
     $history = $this->fakeClaude([]);
-    seedPersonalityCollection();
+    seedPostPunkCollection();
 
     $this->artisan('personality:generate')
         ->expectsOutput('No Anthropic API key configured. Skipping.')

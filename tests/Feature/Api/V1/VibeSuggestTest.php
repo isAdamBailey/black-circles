@@ -43,3 +43,14 @@ it('returns a 422 when the collection is empty', function () {
         ->assertStatus(422)
         ->assertJsonStructure(['message']);
 });
+
+it('rate limits vibe searches per client', function () {
+    $release = DiscogsRelease::factory()->create();
+    DiscogsCollectionItem::factory()->for($release, 'release')->create();
+
+    foreach (range(1, 20) as $i) {
+        $this->postJson(route('api.vibe.suggest'), ['prompt' => "late night drive {$i}"])->assertStatus(200);
+    }
+
+    $this->postJson(route('api.vibe.suggest'), ['prompt' => 'late night drive'])->assertStatus(429);
+});

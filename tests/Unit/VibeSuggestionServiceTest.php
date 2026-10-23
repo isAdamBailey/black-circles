@@ -19,7 +19,7 @@ beforeEach(function () {
 /**
  * Mock the release pools so the test can see which tags reach fetchMatchingReleases.
  */
-function expectTagPoolFetch(array $genres, array $styles, array $excludeStyles): void
+function expectVibeTagPoolFetch(array $genres, array $styles, array $excludeStyles): void
 {
     test()->mock(ReleaseSuggestionService::class, function ($mock) use ($genres, $styles, $excludeStyles) {
         $mock->shouldReceive('fetchMatchingReleases')->once()->with($genres, $styles, $excludeStyles, 40)->andReturn(collect());
@@ -33,7 +33,7 @@ it('uses claude-chosen tags to fetch matching releases', function () {
     $this->fakeClaude([
         claudeMessage(json_encode(['genres' => ['Jazz'], 'styles' => ['Ambient', 'Made Up'], 'exclude_styles' => ['Punk']])),
     ]);
-    expectTagPoolFetch(['Jazz'], ['Ambient'], ['Punk']);
+    expectVibeTagPoolFetch(['Jazz'], ['Ambient'], ['Punk']);
 
     app(VibeSuggestionService::class)->buildSuggestion('rainy sunday morning');
 });
@@ -43,7 +43,7 @@ it('uses keyword-matched tags when claude is unavailable', function () {
     $prompt = 'something jazzy and chill';
     $keywordTags = app(MoodKeywordMatcher::class)->matchTags($prompt, Genre::orderedNamesInCollection(), Style::orderedNamesInCollection());
     expect($keywordTags['genres'])->not->toBeEmpty();
-    expectTagPoolFetch($keywordTags['genres'], $keywordTags['styles'], []);
+    expectVibeTagPoolFetch($keywordTags['genres'], $keywordTags['styles'], []);
 
     app(VibeSuggestionService::class)->buildSuggestion($prompt);
 });
