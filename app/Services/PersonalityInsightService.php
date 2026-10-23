@@ -7,10 +7,20 @@ use Illuminate\Support\Facades\DB;
 
 class PersonalityInsightService
 {
-    private const INSIGHT_MAX_NEW_TOKENS = 300;
+    // Thinking tokens count toward max_tokens, so leave plenty of room for a short paragraph.
+    private const INSIGHT_MAX_TOKENS = 8000;
+
+    private const SYSTEM_PROMPT = 'You write the short "about this collection" blurb for a personal vinyl record collection. '
+        .'Given the collection\'s most common styles and genres, write one paragraph (3-4 sentences) summarizing '
+        .'the overall vibe and character of the collection itself — its range, depth, and the eras or scenes '
+        .'it leans into. Synthesize an overall impression rather than listing the genres or styles back out by name. '
+        .'Describe the collection, not the person who owns it — do not speculate about a listener\'s personality, '
+        .'habits, or character. Refer to "this collection", never "this listener". '
+        .'Keep it concise and make sure the paragraph is a complete thought. '
+        .'Reply with the paragraph only, with no preamble or title.';
 
     public function __construct(
-        private HuggingFaceService $huggingFace
+        private ClaudeService $claude
     ) {}
 
     /**
@@ -62,7 +72,7 @@ class PersonalityInsightService
     }
 
     /**
-     * Build the AI prompt from the most-used styles (and optionally genres).
+     * Build the user prompt from the most-used styles (and optionally genres).
      * Returns an empty string when there are no styles or genres to describe.
      */
     public function buildPrompt(array $topStyles, array $topGenres = []): string
@@ -85,18 +95,12 @@ class PersonalityInsightService
         $musicDescription = implode(' ', $lines);
 
         return "A record collection is dominated by the following. {$musicDescription} "
-            .'Based only on these musical preferences, write a short paragraph (3-4 sentences) summarizing '
-            .'the overall vibe and character of the collection itself — its range, depth, and the eras or scenes '
-            .'it leans into. Synthesize an overall impression rather than listing the genres or styles back out by name. '
-            .'Describe the collection, not the person who owns it — do not speculate about a listener\'s personality, '
-            .'habits, or character. Refer to "this collection", never "this listener". '
-            .'Keep it concise and make sure the paragraph is a complete thought that does not trail off. '
-            .'Do not add any preamble.';
+            .'Write the paragraph about this collection.';
     }
 
     /**
-     * Generate a free-text personality insight for the given top styles using the AI.
-     * Returns an empty string if there are no styles, no token, or the API fails.
+     * Generate a free-text personality insight for the given top styles using Claude.
+     * Returns an empty string if there are no styles, no API key, or the API fails.
      */
     public function generatePersonalityInsight(array $topStyles, array $topGenres = []): string
     {
@@ -105,7 +109,7 @@ class PersonalityInsightService
             return '';
         }
 
-        $insight = trim($this->huggingFace->generateText($prompt, self::INSIGHT_MAX_NEW_TOKENS));
+        $insight = $this->claude->generateText(self::SYSTEM_PROMPT, $prompt, self::INSIGHT_MAX_TOKENS);
 
         if ($insight === '') {
             return '';

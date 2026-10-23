@@ -14,7 +14,7 @@ The landing page (`/`) is also semi-public: occasionally shared with people who 
 
 ## Product Purpose
 
-A personal vinyl collection browser powered by AI mood matching. You describe what you want to hear, the app finds it in the collection. The Discogs catalogue is the corpus; the AI (HuggingFace zero-shot + LLM) is a concierge, not the feature. Success looks like: the right record on the turntable in under 60 seconds.
+A personal vinyl collection browser powered by AI mood matching. You describe what you want to hear, the app finds it in the collection. The Discogs catalogue is the corpus; the AI (Claude) is a concierge, not the feature. Success looks like: the right record on the turntable in under 60 seconds.
 
 ## Positioning
 
@@ -32,10 +32,10 @@ Two things a generic music app couldn't truthfully claim:
 
 ## Capabilities and Constraints
 
-- Mood-based browsing (curated mood tiles → matched releases), plain-English vibe search (zero-shot classification via `MoritzLaurer/deberta-v3-base-zeroshot-v2.0`), and an AI-generated personality insight (`Qwen/Qwen2.5-1.5B-Instruct`) — all synchronous except the weekly sync/regeneration jobs.
+- Mood-based browsing (curated mood tiles → matched releases), plain-English vibe search (Claude picks matching genres/styles from the collection, with a keyword-matching fallback), and an AI-generated personality insight (Claude) — all synchronous except the weekly sync/regeneration jobs.
 - Collection browsing: full grid with search/filter/sort, release detail, and random-release discovery (now a first-class entry point on the home page, the collection page, and via a bare `/random` URL suitable for direct/QR traffic).
 - Full-text search backed by Meilisearch (Laravel Scout), populated during `discogs:sync`.
-- `HUGGINGFACE_API_TOKEN` must be set for the AI features to function; without it, mood/vibe/personality features are unavailable (collection browsing still works).
+- `ANTHROPIC_API_KEY` enables the AI features; without it, personality generation is skipped and vibe search uses keyword matching only (mood presets and collection browsing are unaffected).
 - SPA mode (`ssr: false`) — every page fetches client-side; no server-rendered pass.
 
 ## Brand Commitments

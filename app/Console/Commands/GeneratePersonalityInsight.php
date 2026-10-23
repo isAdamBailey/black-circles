@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Setting;
+use App\Services\ClaudeService;
 use App\Services\PersonalityInsightService;
 use Illuminate\Console\Command;
 
@@ -12,12 +13,10 @@ class GeneratePersonalityInsight extends Command
 
     protected $description = 'Generate and cache the AI personality insight from the collection';
 
-    public function handle(PersonalityInsightService $personalityInsight): int
+    public function handle(PersonalityInsightService $personalityInsight, ClaudeService $claude): int
     {
-        $hasToken = ! empty(config('services.huggingface.token'));
-
-        if (! $hasToken) {
-            $this->warn('No HuggingFace token configured. Skipping.');
+        if (! $claude->isConfigured()) {
+            $this->warn('No Anthropic API key configured. Skipping.');
 
             return 0;
         }

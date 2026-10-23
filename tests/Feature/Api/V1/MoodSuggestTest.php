@@ -16,8 +16,8 @@ it('returns preset mood suggestions as json', function () {
         ->assertJsonPath('data.primary.title', 'Chill Album');
 });
 
-it('returns mood suggestions the same way regardless of huggingface token config', function () {
-    config(['services.huggingface.token' => 'test-token']);
+it('returns mood suggestions the same way regardless of anthropic key config', function () {
+    config(['services.anthropic.key' => 'test-key']);
 
     $release = DiscogsRelease::factory()
         ->withGenres(['Jazz'])
