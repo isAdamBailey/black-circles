@@ -1,5 +1,7 @@
 <?php
 
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Psr\Http\Message\RequestInterface;
@@ -39,12 +41,20 @@ function claudeError(int $status = 400): Response
 }
 
 /**
- * The decoded JSON body of a recorded Claude request.
+ * A transport failure, as Guzzle raises when the request times out.
+ */
+function claudeTimeout(): ConnectException
+{
+    return new ConnectException('Operation timed out', new Request('POST', 'https://api.anthropic.com/v1/messages'));
+}
+
+/**
+ * The decoded JSON body of the first recorded Claude request.
  *
  * @param  ArrayObject<int, array{request: RequestInterface}>  $history
  * @return array<string, mixed>
  */
-function claudeRequestBody(ArrayObject $history, int $index = 0): array
+function claudeRequestBody(ArrayObject $history): array
 {
-    return json_decode((string) $history[$index]['request']->getBody(), true);
+    return json_decode((string) $history[0]['request']->getBody(), true);
 }

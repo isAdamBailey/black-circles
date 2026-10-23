@@ -2,9 +2,8 @@
 
 namespace Tests;
 
-use Anthropic\Client;
+use App\Services\ClaudeService;
 use Database\Seeders\MoodSeeder;
-use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
@@ -26,10 +25,10 @@ abstract class TestCase extends BaseTestCase
 
     /**
      * Route Claude requests through a Guzzle mock that replays $responses in order.
-     * Returns the request history so tests can inspect what was sent.
+     * Returns the request history so tests can inspect what was sent (and with which Guzzle options).
      *
      * @param  array<ResponseInterface|\Throwable>  $responses
-     * @return \ArrayObject<int, array{request: RequestInterface}>
+     * @return \ArrayObject<int, array{request: RequestInterface, options: array<string, mixed>}>
      */
     protected function fakeClaude(array $responses): \ArrayObject
     {
@@ -37,11 +36,9 @@ abstract class TestCase extends BaseTestCase
         $stack = HandlerStack::create(new MockHandler($responses));
         $stack->push(Middleware::history($history));
 
-        $client = new Client(
-            apiKey: 'test-key',
-            requestOptions: ['transporter' => new GuzzleClient(['handler' => $stack])],
-        );
-        $this->app->bind(Client::class, fn () => $client);
+        $this->app->when(ClaudeService::class)
+            ->needs(HandlerStack::class)
+            ->give(fn () => $stack);
 
         return $history;
     }

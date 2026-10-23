@@ -7,8 +7,6 @@ use App\Models\Style;
 use App\Services\MoodKeywordMatcher;
 use App\Services\ReleaseSuggestionService;
 use App\Services\VibeSuggestionService;
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Psr7\Request;
 
 beforeEach(function () {
     $release = DiscogsRelease::factory()
@@ -30,11 +28,6 @@ function expectTagPoolFetch(array $genres, array $styles, array $excludeStyles):
     });
 }
 
-function keywordTags(string $prompt): array
-{
-    return app(MoodKeywordMatcher::class)->matchTags($prompt, Genre::orderedNamesInCollection(), Style::orderedNamesInCollection());
-}
-
 it('uses claude-chosen tags to fetch matching releases', function () {
     config(['services.anthropic.key' => 'test-key']);
     $this->fakeClaude([
@@ -45,32 +38,15 @@ it('uses claude-chosen tags to fetch matching releases', function () {
     app(VibeSuggestionService::class)->buildSuggestion('rainy sunday morning');
 });
 
-it('falls back to the keyword matcher when claude is unavailable', function (Closure $setup) {
+it('uses keyword-matched tags when claude is unavailable', function () {
+    config(['services.anthropic.key' => '']);
     $prompt = 'something jazzy and chill';
-    $expected = keywordTags($prompt);
-    expect($expected['genres'])->not->toBeEmpty();
-
-    $setup->call($this);
-    expectTagPoolFetch($expected['genres'], $expected['styles'], []);
+    $keywordTags = app(MoodKeywordMatcher::class)->matchTags($prompt, Genre::orderedNamesInCollection(), Style::orderedNamesInCollection());
+    expect($keywordTags['genres'])->not->toBeEmpty();
+    expectTagPoolFetch($keywordTags['genres'], $keywordTags['styles'], []);
 
     app(VibeSuggestionService::class)->buildSuggestion($prompt);
-})->with([
-    'no key' => fn () => function () {
-        config(['services.anthropic.key' => '']);
-    },
-    'api error' => fn () => function () {
-        config(['services.anthropic.key' => 'test-key']);
-        $this->fakeClaude([claudeError(500)]);
-    },
-    'timeout' => fn () => function () {
-        config(['services.anthropic.key' => 'test-key']);
-        $this->fakeClaude([new ConnectException('Operation timed out', new Request('POST', 'https://api.anthropic.com/v1/messages'))]);
-    },
-    'no usable tags' => fn () => function () {
-        config(['services.anthropic.key' => 'test-key']);
-        $this->fakeClaude([claudeMessage(json_encode(['genres' => ['Vaporwave'], 'styles' => [], 'exclude_styles' => []]))]);
-    },
-]);
+});
 
 it('never calls claude for mood presets with tags', function () {
     config(['services.anthropic.key' => 'test-key']);

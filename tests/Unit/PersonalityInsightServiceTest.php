@@ -3,6 +3,7 @@
 use App\Models\DiscogsCollectionItem;
 use App\Models\DiscogsRelease;
 use App\Services\PersonalityInsightService;
+use GuzzleHttp\Psr7\Response;
 
 beforeEach(function () {
     config(['services.anthropic.key' => 'test-key']);
@@ -78,21 +79,16 @@ it('trims a response that is cut off mid-sentence back to the last complete sent
     expect($result)->toBe('This collection favors moody, atmospheric records.');
 });
 
-it('returns empty string when the claude api errors', function () {
-    $this->fakeClaude([claudeError(400)]);
+it('returns empty string when claude fails', function (Response $response) {
+    $this->fakeClaude([$response]);
 
     $result = app(PersonalityInsightService::class)->generatePersonalityInsight([['name' => 'Post-Punk', 'count' => 5]]);
 
     expect($result)->toBe('');
-});
-
-it('returns empty string when claude refuses', function () {
-    $this->fakeClaude([claudeMessage('', 'refusal')]);
-
-    $result = app(PersonalityInsightService::class)->generatePersonalityInsight([['name' => 'Post-Punk', 'count' => 5]]);
-
-    expect($result)->toBe('');
-});
+})->with([
+    'api error' => [claudeError(400)],
+    'refusal' => [claudeMessage('', 'refusal')],
+]);
 
 it('returns empty string without calling claude when no api key is configured', function () {
     config(['services.anthropic.key' => '']);

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class VibeTagSelector
 {
@@ -14,6 +15,11 @@ class VibeTagSelector
     private const MAX_TOKENS = 4000;
 
     private const CACHE_TTL_SECONDS = 86400;
+
+    // After a failed call, skip Claude for a while so an outage doesn't add the timeout to every search.
+    private const UNAVAILABLE_KEY = 'vibe-tags:claude-unavailable';
+
+    private const UNAVAILABLE_SECONDS = 60;
 
     private const SCHEMA = [
         'type' => 'object',
@@ -27,21 +33,39 @@ class VibeTagSelector
     ];
 
     public function __construct(
-        private ClaudeService $claude
+        private ClaudeService $claude,
+        private MoodKeywordMatcher $keywordMatcher
     ) {}
 
     /**
-     * Ask Claude to pick genres and styles from the collection's own lists that fit a free-text vibe.
-     * Anything not in the lists is dropped. Returns null when Claude is unavailable or fails,
-     * so the caller can fall back to keyword matching.
+     * Pick genres and styles from the collection's own lists that fit a free-text vibe.
+     * Claude chooses them when available; otherwise (no key, error, timeout, or no usable tags)
+     * this falls back to keyword matching.
      *
      * @param  array<string>  $allGenres  Genre names present in the user's collection
      * @param  array<string>  $allStyles  Style names present in the user's collection
+     * @return array{genres: array<string>, styles: array<string>, exclude_styles: array<string>}
+     */
+    public function selectTags(string $prompt, array $allGenres, array $allStyles): array
+    {
+        $tags = $this->claudeTags($prompt, $allGenres, $allStyles);
+        if ($tags !== null && (! empty($tags['genres']) || ! empty($tags['styles']))) {
+            return $tags;
+        }
+
+        return [...$this->keywordMatcher->matchTags($prompt, $allGenres, $allStyles), 'exclude_styles' => []];
+    }
+
+    /**
+     * Ask Claude for tags, dropping anything not in the lists. Returns null when Claude is unavailable or fails.
+     *
+     * @param  array<string>  $allGenres
+     * @param  array<string>  $allStyles
      * @return array{genres: array<string>, styles: array<string>, exclude_styles: array<string>}|null
      */
-    public function selectTags(string $prompt, array $allGenres, array $allStyles): ?array
+    private function claudeTags(string $prompt, array $allGenres, array $allStyles): ?array
     {
-        if (! $this->claude->isConfigured()) {
+        if (Cache::has(self::UNAVAILABLE_KEY)) {
             return null;
         }
 
@@ -60,6 +84,8 @@ class VibeTagSelector
             self::MAX_RETRIES
         );
         if ($response === null) {
+            Cache::put(self::UNAVAILABLE_KEY, true, self::UNAVAILABLE_SECONDS);
+
             return null;
         }
 
@@ -112,8 +138,6 @@ class VibeTagSelector
      */
     private function cacheKey(string $prompt, array $allGenres, array $allStyles): string
     {
-        $normalized = preg_replace('/\s+/', ' ', mb_strtolower(trim($prompt)));
-
-        return 'vibe-tags:'.md5($normalized.'|'.implode(',', $allGenres).'|'.implode(',', $allStyles));
+        return 'vibe-tags:'.md5(Str::squish(mb_strtolower($prompt)).'|'.implode(',', $allGenres).'|'.implode(',', $allStyles));
     }
 }

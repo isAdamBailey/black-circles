@@ -81,7 +81,7 @@ php artisan personality:generate      # regenerate AI personality insight
 - `app/Services/` — all business logic lives here
   - `DiscogsService` — syncs releases and collection items from Discogs API
   - `ClaudeService` — thin wrapper around the Anthropic PHP SDK (model, effort, timeouts, refusal fallback, error handling); never throws to callers
-  - `VibeTagSelector` — asks Claude to pick genres/styles for a free-text vibe from the collection's own tag lists (validated, cached per prompt for a day)
+  - `VibeTagSelector` — asks Claude to pick genres/styles for a free-text vibe from the collection's own tag lists (validated, cached per prompt for a day), falling back to `MoodKeywordMatcher`
   - `MoodKeywordMatcher` — keyword/dictionary fallback for vibe tags when Claude is unavailable
   - `VibeSuggestionService` — builds mood/vibe suggestions (matching + ranking)
   - `CollectionQueryService` — shared filter/sort logic for the collection endpoints
@@ -103,12 +103,12 @@ Vibe search (`POST /api/v1/vibe/suggest`) and mood suggestions are synchronous �
 
 ### AI (Claude via the Anthropic PHP SDK)
 
-Both features use `claude-opus-5-5` at `low` effort through `ClaudeService`. The SDK `Anthropic\Client` is bound in `AppServiceProvider` (timeouts are enforced by its Guzzle transport); tests rebind it to a Guzzle mock via `TestCase::fakeClaude()`, and never call the real API.
+Both features use `claude-opus-5-5` at `low` effort through `ClaudeService`. `ClaudeService` builds the SDK client per call with a Guzzle transport that enforces the timeout (the SDK itself doesn't). Its Guzzle `HandlerStack` comes from a contextual binding in `AppServiceProvider`; tests swap it for a mock via `TestCase::fakeClaude()` and never call the real API.
 
 | Feature | How Claude is used |
 |---|---|
 | Personality insight | `PersonalityInsightService` sends the top styles/genres and saves the paragraph (`personality:generate`) |
-| Vibe search | In `VibeSuggestionService`'s non-preset branch, `VibeTagSelector` asks for genres/styles/exclusions as structured JSON (9 s timeout, no retries). Results are intersected with the collection's tags, then go through `fetchMatchingReleases` → merge with the Scout pool → `ReleaseRanker`. On no key, error, timeout or no usable tags it falls back to `MoodKeywordMatcher`. Mood presets with tags never call Claude |
+| Vibe search | In `VibeSuggestionService`'s non-preset branch, `VibeTagSelector` asks for genres/styles/exclusions as structured JSON (9 s timeout, no retries). Results are intersected with the collection's tags, then go through `fetchMatchingReleases` → merge with the Scout pool → `ReleaseRanker`. On no key, error, timeout or no usable tags it falls back to `MoodKeywordMatcher`; after a failed call it skips Claude for 60 s. Mood presets with tags never call Claude |
 
 Set `ANTHROPIC_API_KEY` to enable these features. Without it, personality generation is skipped and vibe search is keyword-only.
 

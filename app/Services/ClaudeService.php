@@ -6,7 +6,8 @@ use Anthropic\Beta\AnthropicBeta;
 use Anthropic\Beta\Messages\BetaMessage;
 use Anthropic\Client;
 use Anthropic\Messages\Model;
-use Illuminate\Contracts\Container\Container;
+use GuzzleHttp\Client as GuzzleClient;
+use GuzzleHttp\HandlerStack;
 use Illuminate\Support\Facades\Log;
 
 class ClaudeService
@@ -15,12 +16,17 @@ class ClaudeService
 
     private const EFFORT = 'low';
 
-    public const DEFAULT_TIMEOUT = 60.0;
+    private const CONNECT_TIMEOUT = 5.0;
+
+    private const DEFAULT_TIMEOUT = 60.0;
 
     private const DEFAULT_MAX_RETRIES = 2;
 
+    /**
+     * The Guzzle handler stack is injected (bound in AppServiceProvider) so tests can swap in a mock.
+     */
     public function __construct(
-        private Container $container
+        private HandlerStack $handler
     ) {}
 
     public function isConfigured(): bool
@@ -32,14 +38,9 @@ class ClaudeService
      * Send a prompt and return Claude's text reply.
      * Returns an empty string on failure, refusal or when no key is configured.
      */
-    public function generateText(
-        string $system,
-        string $prompt,
-        int $maxTokens,
-        float $timeout = self::DEFAULT_TIMEOUT,
-        int $maxRetries = self::DEFAULT_MAX_RETRIES
-    ): string {
-        return trim($this->send($system, $prompt, $maxTokens, $timeout, $maxRetries) ?? '');
+    public function generateText(string $system, string $prompt, int $maxTokens): string
+    {
+        return trim($this->send($system, $prompt, $maxTokens, self::DEFAULT_TIMEOUT, self::DEFAULT_MAX_RETRIES) ?? '');
     }
 
     /**
@@ -94,11 +95,8 @@ class ClaudeService
         }
 
         try {
-            /** @var Client $client */
-            $client = $this->container->make(Client::class, ['timeout' => $timeout]);
-
             // fallbacks "default" re-runs a safety-classifier refusal on Anthropic's recommended fallback model.
-            $message = $client->beta->messages->create(
+            $message = $this->client($timeout)->beta->messages->create(
                 maxTokens: $maxTokens,
                 messages: [['role' => 'user', 'content' => $prompt]],
                 model: self::MODEL,
@@ -124,6 +122,23 @@ class ClaudeService
         }
 
         return $this->textOf($message);
+    }
+
+    /**
+     * The SDK leaves timeouts to the HTTP transport, so each call gets a Guzzle client with its own timeout.
+     */
+    private function client(float $timeout): Client
+    {
+        return new Client(
+            apiKey: (string) config('services.anthropic.key'),
+            requestOptions: [
+                'transporter' => new GuzzleClient([
+                    'handler' => $this->handler,
+                    'connect_timeout' => self::CONNECT_TIMEOUT,
+                    'timeout' => $timeout,
+                ]),
+            ],
+        );
     }
 
     private function textOf(BetaMessage $message): string
