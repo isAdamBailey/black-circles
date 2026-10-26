@@ -1,6 +1,6 @@
 # Black Circles
 
-[![Laravel Forge Site Deployment Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fforge.laravel.com%2Fsite-badges%2Fe02bdf85-96d4-4d8e-8982-507d89b24bec&style=flat)](https://forge.laravel.com/adam-f6w/adambaileyio/3060937)
+[![Laravel Forge Site Deployment Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fforge.laravel.com%2Fsite-badges%2F6a1b8989-96fb-459d-9be9-3a08b70fa53c&style=plastic)](https://forge.laravel.com/adam-f6w/stunning-fern-s7f/3451761)
 
 A Laravel API + Nuxt 4 application to display, explore, and understand your [Discogs](https://www.discogs.com) vinyl record collection — powered by AI.
 
