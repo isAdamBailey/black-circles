@@ -1,7 +1,7 @@
 # Deploying to Forge
 
-As of Phase 5 (issue #5), Laravel is a JSON API only (`routes/api.php`) — no pages
-of its own. [`frontend/`](frontend/) (Nuxt 4, SPA mode) is the only UI.
+Laravel is a JSON API only (`routes/api.php`) — no pages of its own.
+[`frontend/`](frontend/) (Nuxt 4, SPA mode) is the only UI.
 
 ```
 Browser
@@ -69,63 +69,14 @@ docs rather than guesswork:
 (via Supervisor), so it can't see `$FORGE_RELEASE_DIRECTORY`; it needs the
 stable `current` symlink instead.
 
-## 0. Order of operations — do this *before* merging the cutover PR
-
-**Merging the Phase 5 PR (#14) and letting Forge auto-deploy it immediately
-will break the site**, for two independent reasons: (1) the site's *current*
-Deploy Script still runs `npm ci && npm run build` at the repo root for the
-old Vite/Inertia frontend — that script no longer exists once #14 merges, so
-the deploy fails partway through, potentially after `git pull` has already
-replaced files on disk but before `config:cache`/FPM reload run; (2) even if
-the deploy succeeded, nginx is still routing `/` to PHP-FPM, and Laravel has
-no web routes left to answer with.
-
-The fix is to **not couple the Forge changes to the PR merge**. `frontend/`
-(the full Nuxt app — all pages, all `/api/v1/*` endpoints it depends on) is
-already on `main` as of Phase 4 — Phase 5 only removes the *old* backend code
-and changes how Forge deploys. So the whole Node/nginx side below can be
-built and proven working while `main` still safely serves Inertia, and #14
-merged only once that's confirmed:
-
-1. Temporarily disable **Push to deploy** on the site (Deployments tab) so an
-   unrelated push doesn't trigger a deploy mid-setup.
-2. SSH in and manually build the frontend against current `main`:
-   `cd /home/forge/<domain>/current/frontend && npm ci && npm run build`
-   (only possible once at least one deploy has succeeded and `current`
-   exists — see the brand-new-site note below otherwise). Proves the build
-   works before anything is wired up.
-3. Step 2 below (create + start the Daemon on port `3004`, confirm
-   `RUNNING`, `curl 127.0.0.1:3004` from the server). This only talks to
-   the daemon directly — nginx and real users aren't affected yet.
-4. Step 4 below (edit nginx, reload). **This is the actual user-facing
-   cutover moment** — check the live domain immediately after. Do this
-   before merging anything, while you can still trivially revert by
-   re-editing nginx back to the default catch-all if something's wrong.
-5. Step 3's Deploy Script update — safe now, since nginx/daemon are already
-   correct and this doesn't require #14 to be merged.
-6. Step 5 (env vars).
-7. Re-enable Push to deploy, *then* merge #14. The triggered deploy runs the
-   *new* script against the *new* code — low-risk, since nginx and the
-   daemon were already proven working against the old code first.
-8. Run the checklist at the bottom of this file.
-
-Forge's **Push to deploy** should otherwise already be enabled on this site
-(Deployments tab) — nothing about *triggering* deploys changes here, only
-what a deploy does and when you let one happen.
-
-**None of the above applies if this is a brand-new Forge site that has never
-deployed successfully.** #14 has since merged, and there's no live traffic
-serving Inertia to protect — the whole point of this staged ordering was to
-avoid breaking an *existing* production site mid-migration. For a fresh site:
-just get the Deploy Script (step 3) right first — there's nothing on disk to
-manually build into yet, since nothing has been cloned there — then let a
-deploy run, then set up the Daemon (step 2) once `frontend/.output/` actually
-exists, then nginx (step 4).
+**Order for a new site:** get the Deploy Script (step 3) right first, let a
+deploy run, then set up the Daemon (step 2) once `frontend/.output/` exists,
+then nginx (step 4).
 
 ## 1. Site settings (Forge → site → General)
 
-Unchanged: Web Directory `/public`, PHP 8.3. Laravel still boots from
-`public/index.php`; what changes is which requests nginx sends there.
+Web Directory `/public`, PHP 8.5. Laravel boots from `public/index.php`;
+nginx decides which requests go there (step 4).
 
 ## 2. Add a Daemon for Nuxt (Forge → site → Daemons)
 
@@ -158,9 +109,6 @@ once from the Daemons tab and confirm it shows `RUNNING` — Supervisor won't
 auto-start a brand-new daemon.
 
 ## 3. Deploy Script (Forge → site → App / Deploy Script)
-
-Replace the existing script (it still has `npm run build`/Vite steps for the
-removed Inertia frontend).
 
 **This site has Zero Downtime Deployment enabled** (Forge's own
 `$CREATE_RELEASE()`/`$ACTIVATE_RELEASE()`/`$RESTART_QUEUES()` helper
@@ -365,11 +313,9 @@ Also enable Forge's **Scheduler** (weekly `discogs:sync` +
 
 ## Rollback
 
-1. Forge → Deployments → Rollback to the previous deploy.
-2. Revert nginx to the default catch-all (`location / { try_files ... }`),
-   or to whatever the pre-cutover Inertia config was.
-3. Stop the Nuxt daemon — the rolled-back deploy serves pages via Inertia/PHP
-   again, so nothing app-specific should be listening on `3004`.
+Forge → Deployments → Rollback to the previous deploy. The Nuxt daemon
+follows the `current` symlink, so restart it afterwards
+(`sudo supervisorctl restart daemon-<id>:*`).
 
 ## Troubleshooting reference
 
