@@ -194,14 +194,14 @@ describe('collection index page', () => {
 
     const wrapper = await mountCollection()
 
-    await wrapper.get('button[title="Descending"]')
-    await wrapper.findAll('button').find((b) => b.text().startsWith('Filter'))!.trigger('click')
+    await wrapper.get('button[aria-expanded]').trigger('click')
     await wrapper.findAll('button').find((b) => b.text() === 'Rock')!.trigger('click')
     await flushPromises()
 
     expect(getMock).toHaveBeenLastCalledWith('/collection', {
       query: { sort: 'value', direction: 'desc', page: 1, 'genres[]': ['Rock'] },
     })
+    expect(wrapper.get('h2 button').text()).toContain('Rock')
   })
 
   it('seeds the genre filter from the URL query (deep-linked from a release page)', async () => {
@@ -227,6 +227,19 @@ describe('collection index page', () => {
       query: { sort: 'value', direction: 'desc', page: 1, search: 'Pink' },
     })
     expect(getMock).toHaveBeenCalledWith('/collection/search', { query: { q: 'Pink' } })
+  }, 10000)
+
+  it('names the applied search term in the sort and filter heading', async () => {
+    mockCollection()
+
+    const wrapper = await mountCollection()
+    expect(wrapper.get('h2 button').text()).toContain('All records')
+
+    await wrapper.get('input[type="text"]').setValue('Pink')
+    await new Promise((resolve) => setTimeout(resolve, 450))
+    await flushPromises()
+
+    expect(wrapper.get('h2 button').text()).toContain('Matching “Pink”')
   }, 10000)
 
   it('navigates to a release when a suggestion is selected', async () => {
@@ -461,7 +474,8 @@ describe('collection index page', () => {
     })
 
     await scrollSentinel()
-    await wrapper.get('select').setValue('title')
+    await wrapper.get('button[aria-expanded]').trigger('click')
+    await wrapper.get('input[type="radio"][value="title:asc"]').setValue()
     await flushPromises()
 
     resolvePageTwo(
@@ -489,5 +503,20 @@ describe('collection index page', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Chill Sessions')
+  })
+
+  it('keeps the last results but says so when a refetch fails', async () => {
+    mockCollection()
+
+    const wrapper = await mountCollection()
+
+    getMock.mockRejectedValueOnce(new Error('Network Error'))
+    await wrapper.get('button[aria-expanded]').trigger('click')
+    await wrapper.findAll('button').find((b) => b.text() === 'Rock')!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain("Couldn't update the results")
+    expect(wrapper.text()).toContain('Chill Sessions')
+    expect(wrapper.get('h2 button').text()).toContain('Rock')
   })
 })

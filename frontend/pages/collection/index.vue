@@ -17,15 +17,6 @@ const selectedGenres = ref<string[]>(ensureArray(route.query['genres[]'] as stri
 const selectedStyles = ref<string[]>(ensureArray(route.query['styles[]'] as string | string[] | undefined))
 const sort = ref('value')
 const direction = ref<'asc' | 'desc'>('desc')
-const showFilters = ref(false)
-
-const sortOptions = [
-  { value: 'date_added', label: 'Date Added' },
-  { value: 'title', label: 'Title' },
-  { value: 'artist', label: 'Artist' },
-  { value: 'year', label: 'Year' },
-  { value: 'value', label: 'Value' },
-]
 
 function buildQuery(pageNum: number): Record<string, unknown> {
   const query: Record<string, unknown> = {
@@ -40,7 +31,7 @@ function buildQuery(pageNum: number): Record<string, unknown> {
 }
 
 const {
-  data,
+  data: fetched,
   status,
   error,
   refresh,
@@ -49,6 +40,14 @@ const {
   () => get<CollectionIndex>('/collection', { query: buildQuery(1) }),
   { lazy: true, watch: [debouncedSearch, selectedGenres, selectedStyles, sort, direction] },
 )
+
+// A failed refetch clears `fetched`; keep showing the last good response (with a
+// notice) so the controls stay put instead of collapsing into the full-page error.
+const lastGood = shallowRef<CollectionIndex | null>(null)
+watch(fetched, (value) => {
+  if (value) lastGood.value = value
+})
+const data = computed(() => fetched.value ?? lastGood.value)
 
 const extraReleases = ref<CollectionIndex['data']>([])
 const currentPage = ref(1)
@@ -210,18 +209,6 @@ function handleClickOutside(event: MouseEvent) {
 onMounted(() => document.addEventListener('click', handleClickOutside))
 onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
-function toggleGenre(genre: string) {
-  selectedGenres.value = selectedGenres.value.includes(genre)
-    ? selectedGenres.value.filter((g) => g !== genre)
-    : [...selectedGenres.value, genre]
-}
-
-function toggleStyle(style: string) {
-  selectedStyles.value = selectedStyles.value.includes(style)
-    ? selectedStyles.value.filter((s) => s !== style)
-    : [...selectedStyles.value, style]
-}
-
 function clearFilters() {
   search.value = ''
   debouncedSearch.value = ''
@@ -230,6 +217,22 @@ function clearFilters() {
   sort.value = 'value'
   direction.value = 'desc'
 }
+
+// The release page waits for its data before it replaces this one, so the
+// clicked tile carries the wait instead of the grid sitting there unchanged.
+const openingId = ref<number | null>(null)
+
+function onTileClick(event: MouseEvent, discogsId: number) {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
+  openingId.value = discogsId
+}
+
+// A failed or cancelled navigation leaves us here; drop the spinner.
+const router = useRouter()
+const removeAfterEach = router.afterEach((_to, _from, failure) => {
+  if (failure) openingId.value = null
+})
+onUnmounted(removeAfterEach)
 
 function formatDate(dateStr: string | null | undefined) {
   if (!dateStr) return ''
@@ -252,7 +255,7 @@ useHead({ title: 'Collection' })
       <NuxtLink
         v-if="data?.username"
         to="/random"
-        class="inline-flex items-center justify-center gap-2 rounded-md bg-shelf hover:bg-groove border border-jacket px-5 py-2.5 text-sm font-semibold text-pressing transition-colors shrink-0"
+        class="inline-flex items-center justify-center gap-2 rounded-lg bg-oxblood px-5 py-2.5 text-sm font-semibold text-pressing transition-colors hover:bg-oxblood-bright focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oxblood-bright shrink-0"
       >
         <svg
           class="h-4 w-4"
@@ -273,7 +276,7 @@ useHead({ title: 'Collection' })
       </NuxtLink>
     </div>
 
-    <div v-if="status === 'pending'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+    <div v-if="status === 'pending' && !data" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
       <div
         v-for="n in 12"
         :key="n"
@@ -281,7 +284,7 @@ useHead({ title: 'Collection' })
       />
     </div>
 
-    <div v-else-if="error" class="text-center py-24" role="alert">
+    <div v-else-if="error && !data" class="text-center py-24" role="alert">
       <h2 class="text-xl font-semibold text-sleeve mb-2">Couldn&apos;t load the collection</h2>
       <p class="text-label text-pretty mb-4">The API didn&apos;t respond. Check that the backend is running, then try again.</p>
       <button
@@ -304,8 +307,8 @@ useHead({ title: 'Collection' })
     </div>
 
     <template v-else>
-      <div class="flex flex-col sm:flex-row gap-3 mb-6">
-        <div ref="searchWrapperRef" class="relative flex-1">
+      <div class="mb-4">
+        <div ref="searchWrapperRef" class="relative">
           <input
             v-model="search"
             type="text"
@@ -323,7 +326,7 @@ useHead({ title: 'Collection' })
           </button>
           <div
             v-if="showSuggestions && (suggestions.length || fetchingSuggestions)"
-            class="absolute top-full left-0 right-0 mt-1 bg-cabinet border border-groove rounded-lg shadow-xl z-50 max-h-64 overflow-auto"
+            class="absolute top-full left-0 right-0 mt-1 bg-cabinet border border-groove rounded-lg z-50 max-h-64 overflow-auto"
           >
             <div v-if="fetchingSuggestions" class="px-4 py-3 text-dust text-sm">Searching…</div>
             <button
@@ -352,100 +355,33 @@ useHead({ title: 'Collection' })
             </button>
           </div>
         </div>
-        <div class="flex flex-col gap-1">
-          <select
-            v-model="sort"
-            class="bg-cabinet border border-groove rounded-lg px-3 py-2.5 text-pressing text-sm focus:outline-none focus:border-dust"
-          >
-            <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
-          <p v-if="sort === 'value'" class="text-dust text-xs">Lowest listed price</p>
-        </div>
-        <button
-          type="button"
-          class="px-3 py-2.5 bg-cabinet border border-groove rounded-lg text-label hover:text-pressing text-sm transition-colors"
-          :title="direction === 'asc' ? 'Ascending' : 'Descending'"
-          @click="direction = direction === 'asc' ? 'desc' : 'asc'"
-        >
-          {{ direction === 'asc' ? '↑' : '↓' }}
-        </button>
-        <button
-          type="button"
-          class="px-4 py-2.5 bg-cabinet border rounded-lg text-sm transition-colors"
-          :class="
-            selectedGenres.length || selectedStyles.length
-              ? 'border-pressing text-pressing'
-              : 'border-groove text-label hover:text-pressing'
-          "
-          @click="showFilters = !showFilters"
-        >
-          Filter
-          {{
-            selectedGenres.length + selectedStyles.length > 0
-              ? `(${selectedGenres.length + selectedStyles.length})`
-              : ''
-          }}
-        </button>
       </div>
 
-      <div v-if="showFilters" class="bg-cabinet border border-shelf rounded-xl p-5 mb-6">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-sm font-semibold text-label uppercase tracking-wider">Filters</h3>
-          <button type="button" class="text-xs text-dust hover:text-sleeve transition-colors" @click="clearFilters">
-            Clear all
-          </button>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div v-if="data?.allGenres?.length">
-            <h4 class="text-xs font-semibold text-dust uppercase tracking-wider mb-3">Genres</h4>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="genre in data.allGenres"
-                :key="genre"
-                type="button"
-                class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-                :class="
-                  selectedGenres.includes(genre)
-                    ? 'bg-pressing text-void'
-                    : 'bg-shelf text-label hover:text-pressing hover:bg-groove'
-                "
-                @click="toggleGenre(genre)"
-              >
-                {{ genre }}
-              </button>
-            </div>
-          </div>
-          <div v-if="data?.allStyles?.length">
-            <h4 class="text-xs font-semibold text-dust uppercase tracking-wider mb-3">Styles</h4>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="style in data.allStyles"
-                :key="style"
-                type="button"
-                class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-                :class="
-                  selectedStyles.includes(style)
-                    ? 'bg-pressing text-void'
-                    : 'bg-shelf text-label hover:text-pressing hover:bg-groove'
-                "
-                @click="toggleStyle(style)"
-              >
-                {{ style }}
-              </button>
-            </div>
-          </div>
-        </div>
-        <div class="mt-4 pt-4 border-t border-shelf">
-          <button
-            type="button"
-            class="w-full sm:w-auto px-4 py-2.5 bg-pressing text-void font-medium rounded-lg hover:bg-sleeve transition-colors text-sm"
-            @click="showFilters = false"
-          >
-            Find results
-          </button>
-        </div>
+      <CollectionRefine
+        v-model:sort="sort"
+        v-model:direction="direction"
+        v-model:genres="selectedGenres"
+        v-model:styles="selectedStyles"
+        :all-genres="data?.allGenres ?? []"
+        :all-styles="data?.allStyles ?? []"
+        :total="meta?.total"
+        :search="debouncedSearch"
+        class="mb-5"
+      />
+
+      <div
+        v-if="error"
+        role="alert"
+        class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-signal-error-text/30 bg-signal-error-bg px-4 py-3"
+      >
+        <p class="text-sm text-signal-error-text">Couldn&apos;t update the results. These are from before your last change.</p>
+        <button
+          type="button"
+          class="text-sm font-semibold text-pressing underline-offset-4 hover:underline"
+          @click="refresh()"
+        >
+          Try again
+        </button>
       </div>
 
       <div v-if="releases.length === 0" class="text-center py-24">
@@ -458,12 +394,18 @@ useHead({ title: 'Collection' })
       </div>
 
       <template v-else>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div
+          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 transition-opacity duration-200"
+          :class="(status === 'pending' || error) && 'opacity-50'"
+          :aria-busy="status === 'pending'"
+        >
           <NuxtLink
             v-for="release in releases"
             :key="release.id"
             :to="`/collection/${release.discogs_id}`"
             class="group block"
+            :aria-busy="openingId === release.discogs_id"
+            @click="onTileClick($event, release.discogs_id)"
           >
             <div class="relative aspect-square bg-shelf rounded-lg overflow-hidden mb-2">
               <img
@@ -482,7 +424,20 @@ useHead({ title: 'Collection' })
               >
                 {{ '★'.repeat(release.collection_item.rating) }}
               </div>
+              <Transition
+                enter-active-class="motion-safe:transition-opacity duration-200 ease-out"
+                enter-from-class="opacity-0"
+              >
+                <div
+                  v-if="openingId === release.discogs_id"
+                  class="absolute inset-0 z-10 grid place-items-center bg-void/60"
+                >
+                  <SpinningRecord />
+                  <span class="sr-only">Opening {{ release.title }}…</span>
+                </div>
+              </Transition>
               <div
+                v-if="openingId !== release.discogs_id"
                 class="absolute inset-0 bg-void/0 group-hover:bg-void/40 transition-colors duration-300 flex items-end p-2 opacity-0 group-hover:opacity-100"
               >
                 <span class="text-pressing text-xs font-medium truncate">View details</span>

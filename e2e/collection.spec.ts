@@ -8,7 +8,7 @@ test.describe('Collection', () => {
         await expect(page.getByRole('link', { name: /Chill Sessions/ })).toBeVisible();
         await expect(page.getByRole('link', { name: /Electric Pulse/ })).toBeVisible();
 
-        await page.getByRole('button', { name: /^Filter/ }).click();
+        await page.getByRole('button', { name: /^Sort and filter/ }).click();
         await page.getByRole('button', { name: 'Electronic', exact: true }).click();
 
         await expect(page.getByRole('link', { name: /Electric Pulse/ })).toBeVisible();
